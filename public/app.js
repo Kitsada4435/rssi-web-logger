@@ -1,4 +1,4 @@
-// RSSI Web Logger - Client Controller
+// RSSI Web Logger - Client Controller (Dual-OS + Google Drive)
 document.addEventListener('DOMContentLoaded', () => {
   // Application State
   const state = {
@@ -21,9 +21,12 @@ document.addEventListener('DOMContentLoaded', () => {
       localStorage.setItem('rssi_participant_id', generated);
       return generated;
     })(),
+    gdriveWebhook: localStorage.getItem('rssi_gdrive_webhook') || '',
+    autoSyncGdrive: localStorage.getItem('rssi_autosync_gdrive') !== 'false',
     selectedMode: 'walk',
     currentLocation: null,
     watchId: null,
+    wakeLock: null,
     logs: [],
     chart: null,
     map: null,
@@ -35,11 +38,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const el = {
     connPill: document.getElementById('connection-pill'),
     connText: document.getElementById('connection-text'),
+    wakelockPill: document.getElementById('wakelock-pill'),
+    wakelockText: document.getElementById('wakelock-text'),
     tripTimer: document.getElementById('trip-timer'),
     tripIdBadge: document.getElementById('trip-id-badge'),
     btnStart: document.getElementById('btn-start-trip'),
     btnStop: document.getElementById('btn-stop-trip'),
     btnExport: document.getElementById('btn-export-csv'),
+    btnSyncGdrive: document.getElementById('btn-sync-gdrive'),
     btnSimulate: document.getElementById('btn-simulate-ping'),
     btnClear: document.getElementById('btn-clear-data'),
     btnRecenter: document.getElementById('btn-recenter'),
@@ -53,6 +59,9 @@ document.addEventListener('DOMContentLoaded', () => {
     totalSamples: document.getElementById('total-samples'),
     avgRssi: document.getElementById('avg-rssi'),
     participantInput: document.getElementById('participant-id-input'),
+    gdriveWebhookInput: document.getElementById('gdrive-webhook-input'),
+    gdriveStatusBadge: document.getElementById('gdrive-status-badge'),
+    gdriveAutoSyncChk: document.getElementById('gdrive-autosync-chk'),
     serverUrlDisplay: document.getElementById('server-url-display'),
     modeBtns: document.querySelectorAll('.mode-btn')
   };
@@ -111,7 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        animation: { duration: 250 },
+        animation: { duration: 200 },
         scales: {
           x: {
             display: false,
@@ -142,7 +151,29 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 3. Geolocation Tracker
+  // 3. Screen Keep-Awake (WakeLock API for iOS & Android)
+  async function requestWakeLock() {
+    if ('wakeLock' in navigator) {
+      try {
+        state.wakeLock = await navigator.wakeLock.request('screen');
+        if (el.wakelockPill) {
+          el.wakelockPill.style.display = 'inline-flex';
+          el.wakelockText.textContent = 'Screen Awake';
+        }
+      } catch (err) {
+        console.warn('Wake Lock error:', err.message);
+      }
+    }
+  }
+
+  function releaseWakeLock() {
+    if (state.wakeLock !== null) {
+      state.wakeLock.release().catch(() => {});
+      state.wakeLock = null;
+    }
+  }
+
+  // 4. Geolocation Tracker
   function startGeoTracking() {
     if ('geolocation' in navigator) {
       state.watchId = navigator.geolocation.watchPosition(
@@ -169,7 +200,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // 4. Update UI with Incoming Telemetry
+  // 5. Update UI with Incoming Telemetry
   function ingestEntry(entry) {
     state.logs.push(entry);
 
@@ -232,7 +263,7 @@ document.addEventListener('DOMContentLoaded', () => {
     el.connPill.classList.add('recording');
   }
 
-  // 5. Connect Real-time SSE Stream (fallback to polling)
+  // 6. Connect Real-time SSE Stream (fallback to polling)
   function connectStream() {
     if (window.EventSource) {
       const sse = new EventSource('/api/stream');
@@ -258,7 +289,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // 6. Reset Data
+  // 7. Reset Data
   function resetData() {
     state.logs = [];
     state.chart.data.labels = [];
@@ -269,7 +300,7 @@ document.addEventListener('DOMContentLoaded', () => {
     el.avgRssi.textContent = '-- dBm';
   }
 
-  // 7. Timer Controller
+  // 8. Timer Controller
   function startTimer() {
     state.startTime = Date.now();
     state.timerInterval = setInterval(() => {
@@ -286,7 +317,108 @@ document.addEventListener('DOMContentLoaded', () => {
     state.timerInterval = null;
   }
 
-  // 8. Event Listeners
+  // 9. Google Drive Sync Engine
+  async function syncToGoogleDrive(isSilent = false) {
+    if (!state.gdriveWebhook) {
+      if (!isSilent) {
+        alert('กรุณาระบุ Google Apps Script Webhook URL ในช่องเชื่อมต่อ Google Drive ก่อนครับ');
+      }
+      return;
+    }
+
+    if (state.logs.length === 0) {
+      if (!isSilent) alert('ไม่มีข้อมูลในเซสชันนี้ให้ส่งขึ้น Google Drive');
+      return;
+    }
+
+    if (el.btnSyncGdrive) {
+      el.btnSyncGdrive.disabled = true;
+      el.btnSyncGdrive.innerHTML = '<span>⏳ UPLOADING...</span>';
+    }
+
+    // Prepare complete dataset with fallback to current GPS
+    const payloadLogs = state.logs.map(row => ({
+      timestamp: row.timestamp,
+      participant_id: row.participant_id || state.participantId,
+      trip_id: row.trip_id || state.tripId,
+      latitude: row.latitude !== null ? row.latitude : (state.currentLocation ? state.currentLocation.lat : ''),
+      longitude: row.longitude !== null ? row.longitude : (state.currentLocation ? state.currentLocation.lng : ''),
+      accuracy: row.accuracy !== null ? row.accuracy : (state.currentLocation ? state.currentLocation.accuracy : 5),
+      speed: row.speed !== null ? row.speed : (state.currentLocation ? state.currentLocation.speed : 0),
+      ssid: row.ssid || '',
+      bssid: row.bssid || '',
+      rssi: row.rssi,
+      user_label_mode: row.user_label_mode || state.selectedMode
+    }));
+
+    try {
+      // Send directly or via backend proxy /api/sync-drive
+      const res = await fetch('/api/sync-drive', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          webhook_url: state.gdriveWebhook,
+          trip_id: state.tripId,
+          participant_id: state.participantId,
+          logs: payloadLogs
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.status === 'ok') {
+        if (!isSilent) {
+          alert(`✅ บันทึกสำเร็จ! ส่งข้อมูล ${payloadLogs.length} จุดขึ้น Google Drive และ Google Sheets เรียบร้อยแล้ว`);
+        }
+      } else {
+        throw new Error(data.message || 'Sync failed');
+      }
+    } catch (err) {
+      // Fallback: direct browser fetch to webhook
+      try {
+        await fetch(state.gdriveWebhook, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'batch_upload',
+            trip_id: state.tripId,
+            participant_id: state.participantId,
+            save_csv: true,
+            logs: payloadLogs
+          })
+        });
+        if (!isSilent) {
+          alert(`✅ ส่งข้อมูล ${payloadLogs.length} จุดตรงเข้า Google Drive สำเร็จ!`);
+        }
+      } catch (directErr) {
+        if (!isSilent) {
+          alert(`❌ เกิดข้อผิดพลาดในการส่งเข้า Google Drive: ${err.message}`);
+        }
+      }
+    } finally {
+      if (el.btnSyncGdrive) {
+        el.btnSyncGdrive.disabled = false;
+        el.btnSyncGdrive.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg><span>SYNC TO DRIVE</span>';
+      }
+    }
+  }
+
+  // 10. Update Google Drive Status UI
+  function updateGdriveUI() {
+    if (state.gdriveWebhook && state.gdriveWebhook.startsWith('https://script.google.com/')) {
+      if (el.gdriveStatusBadge) {
+        el.gdriveStatusBadge.textContent = 'พร้อมใช้งาน 🟢';
+        el.gdriveStatusBadge.className = 'gdrive-badge-ready';
+      }
+    } else {
+      if (el.gdriveStatusBadge) {
+        el.gdriveStatusBadge.textContent = 'ไม่ได้ตั้งค่า ⚪';
+        el.gdriveStatusBadge.className = 'gdrive-badge-standby';
+      }
+    }
+  }
+
+  // 11. Event Listeners Setup
   // Sync Participant ID input with state and localStorage
   if (el.participantInput) {
     el.participantInput.value = state.participantId;
@@ -295,6 +427,31 @@ document.addEventListener('DOMContentLoaded', () => {
       state.participantId = val;
       localStorage.setItem('rssi_participant_id', val);
     });
+  }
+
+  // Google Drive Webhook Input
+  if (el.gdriveWebhookInput) {
+    el.gdriveWebhookInput.value = state.gdriveWebhook;
+    updateGdriveUI();
+    el.gdriveWebhookInput.addEventListener('change', (e) => {
+      state.gdriveWebhook = e.target.value.trim();
+      localStorage.setItem('rssi_gdrive_webhook', state.gdriveWebhook);
+      updateGdriveUI();
+    });
+  }
+
+  // Auto-Sync Checkbox
+  if (el.gdriveAutoSyncChk) {
+    el.gdriveAutoSyncChk.checked = state.autoSyncGdrive;
+    el.gdriveAutoSyncChk.addEventListener('change', (e) => {
+      state.autoSyncGdrive = e.target.checked;
+      localStorage.setItem('rssi_autosync_gdrive', state.autoSyncGdrive);
+    });
+  }
+
+  // Sync To Drive Button
+  if (el.btnSyncGdrive) {
+    el.btnSyncGdrive.addEventListener('click', () => syncToGoogleDrive(false));
   }
 
   // Mode selection
@@ -320,6 +477,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     resetData();
     startTimer();
+    requestWakeLock();
   });
 
   // 1-Click Copy Verification Code
@@ -334,7 +492,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Stop Trip
-  el.btnStop.addEventListener('click', () => {
+  el.btnStop.addEventListener('click', async () => {
     state.isRecording = false;
     el.tripIdBadge.textContent = 'FINISHED';
     el.tripIdBadge.style.color = '#94a3b8';
@@ -345,7 +503,13 @@ document.addEventListener('DOMContentLoaded', () => {
     el.btnStop.classList.add('disabled');
 
     stopTimer();
+    releaseWakeLock();
     el.connPill.classList.remove('recording');
+
+    // Auto-sync to Google Drive if checked
+    if (state.autoSyncGdrive && state.gdriveWebhook) {
+      await syncToGoogleDrive(true);
+    }
   });
 
   // Export CSV
@@ -382,7 +546,7 @@ document.addEventListener('DOMContentLoaded', () => {
     URL.revokeObjectURL(url);
   });
 
-  // Simulate Ping (Test without iPhone)
+  // Simulate Ping (Test without mobile device)
   el.btnSimulate.addEventListener('click', async () => {
     const randomRssi = Math.floor(Math.random() * 45) - 85; // -85 to -40 dBm
     const simulatedBssid = '00:1A:2B:3C:4D:' + Math.floor(Math.random() * 89 + 10);
@@ -437,7 +601,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Update server URL label
   el.serverUrlDisplay.textContent = window.location.origin + '/api/log';
 
-  // 9. OS Detection & Adaptive Download Highlighting
+  // 12. OS Detection & Adaptive Download Highlighting
   function detectOS() {
     const ua = navigator.userAgent || navigator.vendor || window.opera;
     const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;

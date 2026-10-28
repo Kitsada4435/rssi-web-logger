@@ -677,3 +677,100 @@ body {
   border-color: transparent;
   box-shadow: 0 0 12px rgba(14, 165, 233, 0.4);
 }
+
+/* Google Drive Sync Section & Cloud Integration */
+.gdrive-card {
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.75), rgba(30, 41, 59, 0.5));
+}
+
+.gdrive-badge-ready {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.gdrive-badge-standby {
+  background: rgba(148, 163, 184, 0.12);
+  color: #94a3b8;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.gdrive-input-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.gdrive-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.gdrive-toggle-row input[type="checkbox"] {
+  accent-color: var(--accent-cyan);
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+
+.btn-gdrive {
+  background: linear-gradient(135deg, #0284c7, #2563eb);
+  color: #ffffff;
+  border: none;
+  font-weight: 600;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+  transition: all 0.2s ease;
+}
+
+.btn-gdrive:hover {
+  background: linear-gradient(135deg, #0369a1, #1d4ed8);
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.5);
+  transform: translateY(-1px);
+}
+
+.gdrive-guide-accordion {
+  margin-top: 10px;
+  font-size: 0.73rem;
+  color: var(--text-dim);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: 8px;
+}
+
+.gdrive-guide-accordion summary {
+  cursor: pointer;
+  color: #38bdf8;
+  font-weight: 600;
+  user-select: none;
+}
+
+.gdrive-guide-accordion ol {
+  padding-left: 18px;
+  margin-top: 6px;
+  line-height: 1.5;
+}
+
+.wakelock-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.68rem;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  padding: 3px 8px;
+  border-radius: 9999px;
+  font-weight: 600;
+}

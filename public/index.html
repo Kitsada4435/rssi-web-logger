@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>RSSI Web Logger - Wi-Fi & GPS Real-Time Telemetry</title>
-  <meta name="description" content="Real-time Wi-Fi RSSI (dBm) and High-Precision GPS Logger Dashboard via iOS Shortcuts">
+  <meta name="description" content="Real-time Wi-Fi RSSI (dBm) and High-Precision GPS Logger Dashboard via iOS Shortcuts and Android">
   
   <!-- Google Fonts: Outfit & Inter & JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -36,11 +36,15 @@
         </div>
         <div>
           <h1 class="app-title">RSSI Web Logger</h1>
-          <p class="app-subtitle">iOS Shortcuts &bull; Wi-Fi Telemetry &bull; Real-time GPS</p>
+          <p class="app-subtitle">Dual-OS &bull; Wi-Fi Telemetry &bull; Real-time GPS &bull; Google Drive</p>
         </div>
       </div>
 
       <div class="header-status">
+        <div class="wakelock-pill" id="wakelock-pill" title="สถานะหน้าจอเปิดค้าง">
+          <span>💡</span>
+          <span id="wakelock-text">Screen Awake</span>
+        </div>
         <div class="status-pill" id="connection-pill">
           <span class="status-dot"></span>
           <span id="connection-text">Standby</span>
@@ -67,7 +71,6 @@
         </a>
       </div>
     </div>
-
 
     <!-- Main Content Grid -->
     <main class="dashboard-grid">
@@ -123,6 +126,35 @@
               <span>STOP TRIP</span>
             </button>
           </div>
+        </div>
+
+        <!-- Google Drive Cloud Sync Card -->
+        <div class="glass-card gdrive-card">
+          <div class="card-header">
+            <h2>☁️ เชื่อมต่อ Google Drive</h2>
+            <span class="gdrive-badge-standby" id="gdrive-status-badge">ไม่ได้ตั้งค่า</span>
+          </div>
+
+          <div class="participant-input-box">
+            <label for="gdrive-webhook-input" class="input-label">Google Apps Script Webhook URL:</label>
+            <input type="url" id="gdrive-webhook-input" class="text-input font-mono" placeholder="https://script.google.com/macros/s/.../exec">
+            <span class="input-hint">บันทึกอัตโนมัติลง Google Sheets และโฟลเดอร์ Google Drive</span>
+          </div>
+
+          <div class="gdrive-toggle-row">
+            <input type="checkbox" id="gdrive-autosync-chk" checked>
+            <label for="gdrive-autosync-chk">อัปโหลดเข้า Google Drive อัตโนมัติเมื่อกด STOP TRIP</label>
+          </div>
+
+          <details class="gdrive-guide-accordion">
+            <summary>📖 วิธีรับ Webhook URL สำหรับ Google Drive (คลิกดู)</summary>
+            <ol>
+              <li>เปิด <strong>script.google.com</strong> แล้ววางโค้ดจาก <code>scripts/google_drive_script.js</code></li>
+              <li>กด <strong>Deploy > New deployment</strong> เลือกประเภท <strong>Web app</strong></li>
+              <li>ตั้งค่า <strong>Who has access: Anyone</strong> แล้วกด Deploy</li>
+              <li>คัดลอก Web app URL มาวางในช่องด้านบนนี้</li>
+            </ol>
+          </details>
         </div>
 
         <!-- Real-Time RSSI Gauge Card -->
@@ -185,11 +217,15 @@
 
         <!-- Export & Tools Toolbar -->
         <div class="glass-card tools-card">
-          <button type="button" class="btn btn-secondary" id="btn-export-csv">
+          <button type="button" class="btn btn-gdrive" id="btn-sync-gdrive" title="ส่งข้อมูลขึ้น Google Drive">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+            <span>SYNC TO DRIVE</span>
+          </button>
+          <button type="button" class="btn btn-secondary" id="btn-export-csv" title="ดาวน์โหลดไฟล์ CSV ลงเครื่อง">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             <span>EXPORT CSV</span>
           </button>
-          <button type="button" class="btn btn-outline" id="btn-simulate-ping">
+          <button type="button" class="btn btn-outline" id="btn-simulate-ping" title="ทดสอบยิงสัญญาณจำลอง">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
             <span>TEST PING</span>
           </button>
@@ -218,7 +254,7 @@
         <div class="glass-card chart-card">
           <div class="card-header">
             <h2>กราฟสัญญาณเทียบเวลา (RSSI Timeline)</h2>
-            <span class="chart-subtitle">อัปเดต Real-time ทุก 1 วินาที</span>
+            <span class="chart-subtitle">50 จุดล่าสุด (-100 ถึง -30 dBm)</span>
           </div>
           <div class="chart-wrapper">
             <canvas id="rssiChart"></canvas>
@@ -228,10 +264,10 @@
       </section>
     </main>
 
-    <!-- Footer Guide -->
+    <!-- Footer Status & Endpoint Info -->
     <footer class="app-footer">
-      <span>Shortcut URL Endpoint: <code class="font-mono" id="server-url-display">/api/log</code></span>
-      <span>iOS 17+ Shortcuts Ready &bull; Native-Free Architecture</span>
+      <span>API Endpoint: <code id="server-url-display">http://localhost:3000/api/log</code></span>
+      <span>RSSI Web Logger &bull; iOS & Android Ready</span>
     </footer>
   </div>
 

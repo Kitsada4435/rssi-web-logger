@@ -6,8 +6,8 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // In-Memory Telemetry Storage
@@ -21,7 +21,7 @@ function broadcast(event, data) {
   });
 }
 
-// 1. Ingest Log Endpoint (Supports both GET & POST from Apple Shortcuts)
+// 1. Ingest Log Endpoint (Supports both GET & POST from Apple Shortcuts / Android Companion)
 app.all('/api/log', (req, res) => {
   const query = req.method === 'GET' ? req.query : { ...req.query, ...req.body };
   
@@ -57,10 +57,61 @@ app.all('/api/log', (req, res) => {
   // Real-time broadcast to dashboard clients
   broadcast('log', entry);
 
+  // Background forward to Google Drive Webhook if set
+  const gdriveWebhook = query.gdrive_webhook || process.env.GOOGLE_DRIVE_WEBHOOK_URL;
+  if (gdriveWebhook) {
+    try {
+      fetch(gdriveWebhook, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(entry)
+      }).catch(err => console.error('GDrive stream forward error:', err.message));
+    } catch (e) {}
+  }
+
   res.status(200).json({ status: 'ok', count: logs.length, entry });
 });
 
-// 2. SSE Real-Time Stream Endpoint
+// 2. Google Drive Batch Sync Endpoint
+app.post('/api/sync-drive', async (req, res) => {
+  const { logs: clientLogs, trip_id, participant_id, webhook_url } = req.body || {};
+  const targetWebhook = webhook_url || process.env.GOOGLE_DRIVE_WEBHOOK_URL;
+
+  if (!targetWebhook) {
+    return res.status(400).json({
+      status: 'error',
+      message: 'Missing Google Drive Webhook URL'
+    });
+  }
+
+  const logsToSync = (clientLogs && clientLogs.length > 0) ? clientLogs : logs;
+  if (logsToSync.length === 0) {
+    return res.status(400).json({ status: 'error', message: 'No logs to sync' });
+  }
+
+  try {
+    const payload = {
+      action: 'batch_upload',
+      trip_id: trip_id || 'TRIP-DEFAULT',
+      participant_id: participant_id || 'USR-ANON',
+      save_csv: true,
+      logs: logsToSync
+    };
+
+    const response = await fetch(targetWebhook, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    const result = await response.json().catch(() => ({ status: 'success', raw: 'Uploaded' }));
+    res.status(200).json({ status: 'ok', google_response: result });
+  } catch (err) {
+    res.status(500).json({ status: 'error', message: err.message });
+  }
+});
+
+// 3. SSE Real-Time Stream Endpoint
 app.get('/api/stream', (req, res) => {
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
@@ -77,19 +128,19 @@ app.get('/api/stream', (req, res) => {
   });
 });
 
-// 3. Get Logs
+// 4. Get Logs
 app.get('/api/logs', (req, res) => {
   res.json({ status: 'ok', count: logs.length, logs });
 });
 
-// 4. Clear Session Logs
+// 5. Clear Session Logs
 app.delete('/api/clear', (req, res) => {
   logs = [];
   broadcast('clear', { status: 'cleared' });
   res.json({ status: 'ok', message: 'Logs cleared successfully' });
 });
 
-// 5. CSV Export Endpoint
+// 6. CSV Export Endpoint
 app.get('/api/export', (req, res) => {
   const headers = [
     'timestamp',
@@ -138,5 +189,6 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`📡 RSSI Web Logger Server running on port ${PORT}`);
   console.log(`🌐 Local URL:   http://localhost:${PORT}`);
   console.log(`📲 Ingest API:  http://localhost:${PORT}/api/log`);
+  console.log(`☁️ GDrive Sync: http://localhost:${PORT}/api/sync-drive`);
   console.log(`===============================================`);
 });

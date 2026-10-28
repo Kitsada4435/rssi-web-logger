@@ -1,9 +1,9 @@
 let memoryStore = global._rssiMemoryStore || [];
 global._rssiMemoryStore = memoryStore;
 
-module.exports = (req, res) => {
+module.exports = async (req, res) => {
   // CORS Headers
-  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
   res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
@@ -43,6 +43,18 @@ module.exports = (req, res) => {
 
   memoryStore.push(entry);
   if (memoryStore.length > 5000) memoryStore.shift();
+
+  // Asynchronous background forward to Google Drive if configured
+  const gdriveWebhook = query.gdrive_webhook || process.env.GOOGLE_DRIVE_WEBHOOK_URL;
+  if (gdriveWebhook) {
+    try {
+      fetch(gdriveWebhook, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(entry)
+      }).catch(err => console.error('Google Drive forward error:', err.message));
+    } catch (e) {}
+  }
 
   res.status(200).json({ status: 'ok', count: memoryStore.length, entry });
 };
