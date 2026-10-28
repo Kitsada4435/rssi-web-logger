@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "rewrites": [
+    { "source": "/api/log", "destination": "/api/log.js" },
+    { "source": "/api/logs", "destination": "/api/logs.js" },
+    { "source": "/api/export", "destination": "/api/export.js" },
+    { "source": "/api/stream", "destination": "/api/logs.js" },
+    { "source": "/(.*)", "destination": "/public/$1" }
+  ]
+}

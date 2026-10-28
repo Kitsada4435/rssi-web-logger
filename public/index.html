@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>RSSI Web Logger - Wi-Fi & GPS Real-Time Telemetry</title>
+  <meta name="description" content="Real-time Wi-Fi RSSI (dBm) and High-Precision GPS Logger Dashboard via iOS Shortcuts">
+  
+  <!-- Google Fonts: Outfit & Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Leaflet CSS for Dark Maps -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  
+  <!-- Chart.js for Telemetry Curves -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Top Header Bar -->
+    <header class="app-header">
+      <div class="header-branding">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
+            <path d="M1.42 9a16 16 0 0 1 21.16 0"></path>
+            <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+            <line x1="12" y1="20" x2="12.01" y2="20"></line>
+          </svg>
+        </div>
+        <div>
+          <h1 class="app-title">RSSI Web Logger</h1>
+          <p class="app-subtitle">iOS Shortcuts &bull; Wi-Fi Telemetry &bull; Real-time GPS</p>
+        </div>
+      </div>
+
+      <div class="header-status">
+        <div class="status-pill" id="connection-pill">
+          <span class="status-dot"></span>
+          <span id="connection-text">Standby</span>
+        </div>
+        <div class="pill-timer" id="trip-timer">00:00:00</div>
+      </div>
+    </header>
+
+    <!-- Dual-OS Auto-Detect Bridge Banner -->
+    <div class="os-bridge-banner" id="os-bridge-banner">
+      <div class="os-info">
+        <span class="os-icon" id="os-icon">📱</span>
+        <div>
+          <div class="os-title" id="os-title">ตรวจพบอุปกรณ์ของคุณ</div>
+          <div class="os-desc" id="os-desc">ระบบตรวจจับเพื่อแนะนำตัวช่วยส่งสัญญาณ Wi-Fi ที่ถูกต้อง</div>
+        </div>
+      </div>
+      <div class="os-actions">
+        <a href="/downloads/Send%20Rssi%20Logger%20web.shortcut" class="btn btn-outline os-btn" id="btn-dl-ios" download>
+          <span>🍎 ดาวน์โหลด iOS Shortcut</span>
+        </a>
+        <a href="/downloads/rssi-logger-android.apk" class="btn btn-outline os-btn" id="btn-dl-android" download>
+          <span>🤖 ดาวน์โหลด Android APK</span>
+        </a>
+      </div>
+    </div>
+
+
+    <!-- Main Content Grid -->
+    <main class="dashboard-grid">
+      <!-- Left Column: Controls & Metrics -->
+      <section class="telemetry-panel">
+        
+        <!-- Trip Control Box -->
+        <div class="glass-card trip-control-card">
+          <div class="card-header">
+            <h2>รอบการบันทึก (Trip Session)</h2>
+            <span class="badge" id="trip-id-badge">IDLE</span>
+          </div>
+
+          <!-- Participant ID Input -->
+          <div class="participant-input-box">
+            <div class="participant-label-row">
+              <label for="participant-id-input" class="input-label">รหัสยืนยันผู้เข้าร่วม (Verification Code):</label>
+              <button type="button" class="btn-copy-badge" id="btn-copy-id" title="คัดลอกรหัส">COPY 📋</button>
+            </div>
+            <input type="text" id="participant-id-input" class="text-input font-mono" placeholder="EXP-XXXX" readonly style="cursor: pointer; background: rgba(6, 182, 212, 0.08); border-color: rgba(6, 182, 212, 0.4);">
+            <span class="input-hint">✨ รหัสเฉพาะบุคคลอัตโนมัติ (แคปจอหรือกด COPY เพื่อยืนยันผลการทดลอง)</span>
+          </div>
+
+          <!-- Mode Selector -->
+          <div class="mode-selector-label">โหมดการเดินทาง (Transit Mode):</div>
+          <div class="mode-grid">
+            <button type="button" class="mode-btn active" data-mode="walk" id="mode-walk-btn">
+              <span class="mode-emoji">🚶</span>
+              <span>Walk</span>
+            </button>
+            <button type="button" class="mode-btn" data-mode="bike" id="mode-bike-btn">
+              <span class="mode-emoji">🚲</span>
+              <span>Bike</span>
+            </button>
+            <button type="button" class="mode-btn" data-mode="moto" id="mode-moto-btn">
+              <span class="mode-emoji">🛵</span>
+              <span>Moto</span>
+            </button>
+            <button type="button" class="mode-btn" data-mode="car" id="mode-car-btn">
+              <span class="mode-emoji">🚗</span>
+              <span>Car</span>
+            </button>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="trip-actions">
+            <button type="button" class="btn btn-primary" id="btn-start-trip">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              <span>START TRIP</span>
+            </button>
+            <button type="button" class="btn btn-danger disabled" id="btn-stop-trip" disabled>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12"/></svg>
+              <span>STOP TRIP</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Real-Time RSSI Gauge Card -->
+        <div class="glass-card gauge-card">
+          <div class="card-header">
+            <h2>ความแรงสัญญาณ (Signal Gauge)</h2>
+            <span class="signal-tag tag-good" id="signal-level-tag">GOOD</span>
+          </div>
+
+          <div class="gauge-display">
+            <div class="rssi-number-container">
+              <span class="rssi-value font-mono" id="current-rssi">-65</span>
+              <span class="rssi-unit">dBm</span>
+            </div>
+            
+            <!-- Progress Meter Bar -->
+            <div class="gauge-bar-track">
+              <div class="gauge-bar-fill" id="gauge-fill" style="width: 70%;"></div>
+            </div>
+            <div class="gauge-scale">
+              <span>-100 dBm (Weak)</span>
+              <span>-70</span>
+              <span>-50</span>
+              <span>-30 dBm (Max)</span>
+            </div>
+          </div>
+
+          <!-- Network Detail Chips -->
+          <div class="network-details-grid">
+            <div class="detail-item">
+              <span class="detail-label">SSID (Wi-Fi)</span>
+              <span class="detail-value font-mono" id="current-ssid">Campus-5G</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">BSSID (MAC)</span>
+              <span class="detail-value font-mono" id="current-bssid">00:1A:2B:3C:4D:5E</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Telemetry Stats Row -->
+        <div class="stats-row">
+          <div class="stat-mini-card">
+            <span class="stat-mini-label">พิกัด GPS</span>
+            <span class="stat-mini-val font-mono" id="gps-coords">-- , --</span>
+          </div>
+          <div class="stat-mini-card">
+            <span class="stat-mini-label">ความเร็ว / แม่นยำ</span>
+            <span class="stat-mini-val font-mono" id="gps-speed">0.0 km/h (±5m)</span>
+          </div>
+          <div class="stat-mini-card">
+            <span class="stat-mini-label">จุดที่บันทึก</span>
+            <span class="stat-mini-val font-mono" id="total-samples">0 pts</span>
+          </div>
+          <div class="stat-mini-card">
+            <span class="stat-mini-label">ค่าเฉลี่ย RSSI</span>
+            <span class="stat-mini-val font-mono" id="avg-rssi">-- dBm</span>
+          </div>
+        </div>
+
+        <!-- Export & Tools Toolbar -->
+        <div class="glass-card tools-card">
+          <button type="button" class="btn btn-secondary" id="btn-export-csv">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span>EXPORT CSV</span>
+          </button>
+          <button type="button" class="btn btn-outline" id="btn-simulate-ping">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+            <span>TEST PING</span>
+          </button>
+          <button type="button" class="btn btn-ghost" id="btn-clear-data" title="ล้างข้อมูล">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          </button>
+        </div>
+
+      </section>
+
+      <!-- Right Column: Map & Chart -->
+      <section class="visualizer-panel">
+        
+        <!-- Live GPS Map -->
+        <div class="glass-card map-card">
+          <div class="card-header">
+            <h2>แผนที่เส้นทาง (GPS Field Map)</h2>
+            <div class="map-controls">
+              <button type="button" class="btn-icon" id="btn-recenter" title="กึ่งกลางตำแหน่งฉัน">🎯</button>
+            </div>
+          </div>
+          <div id="leaflet-map" class="map-container"></div>
+        </div>
+
+        <!-- RSSI Timeline Chart -->
+        <div class="glass-card chart-card">
+          <div class="card-header">
+            <h2>กราฟสัญญาณเทียบเวลา (RSSI Timeline)</h2>
+            <span class="chart-subtitle">อัปเดต Real-time ทุก 1 วินาที</span>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="rssiChart"></canvas>
+          </div>
+        </div>
+
+      </section>
+    </main>
+
+    <!-- Footer Guide -->
+    <footer class="app-footer">
+      <span>Shortcut URL Endpoint: <code class="font-mono" id="server-url-display">/api/log</code></span>
+      <span>iOS 17+ Shortcuts Ready &bull; Native-Free Architecture</span>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

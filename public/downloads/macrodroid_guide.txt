@@ -1,0 +1,14 @@
+# คำสั่งนำเข้าสำหรับ MacroDroid (Android)
+# สำหรับยิงค่า Wi-Fi RSSI เข้า Web Logger แบบเดียวกับ Apple Shortcuts บน iOS
+
+ชื่อมาโคร: Send Rssi Logger Web (Android)
+ทริกเกอร์ (Trigger):
+  - วนซ้ำทุก 1 วินาที (Repeat Every 1 Second) ขณะเปิดหน้าเว็บ
+
+การทำงาน (Actions):
+  1. ดึงค่าชื่อเครื่อง -> ตัวแปร [device_name]
+  2. ดึงค่า Wi-Fi BSSID -> ตัวแปร [wifi_bssid]
+  3. ดึงค่า Wi-Fi SSID -> ตัวแปร [wifi_ssid]
+  4. ดึงค่า Wi-Fi RSSI (dBm) -> ตัวแปร [wifi_rssi]
+  5. ส่งคำขอ HTTP GET / POST:
+     URL: http://10.194.242.107:3000/api/log?bssid=[wifi_bssid]&ssid=[wifi_ssid]&rssi=[wifi_rssi]&participant_id=[device_name]

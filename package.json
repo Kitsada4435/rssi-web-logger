@@ -1,0 +1,17 @@
+{
+  "name": "rssi-web-logger",
+  "version": "1.0.0",
+  "description": "High-performance Web Logger & Dashboard for Wi-Fi RSSI and GPS telemetry via iOS Shortcuts",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": ["rssi", "wifi", "gps", "shortcuts", "ios17", "telemetry", "logger"],
+  "author": "Kitsada4435",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2"
+  }
+}
