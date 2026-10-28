@@ -176,3 +176,4 @@ function generateCsvString(logs) {
   });
   return csv;
 }
+

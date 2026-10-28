@@ -73,27 +73,57 @@ app.all('/api/log', (req, res) => {
 });
 
 // 2. Google Drive Batch Sync Endpoint
-app.post('/api/sync-drive', async (req, res) => {
-  const { logs: clientLogs, trip_id, participant_id, webhook_url } = req.body || {};
-  const targetWebhook = webhook_url || process.env.GOOGLE_DRIVE_WEBHOOK_URL;
+const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbwry_goxlTURpP6xBBi6jvTBfGNrhppeS4xQtPEoBVae52dNa0DnfblQgJDzj-TE_Dr/exec';
 
-  if (!targetWebhook) {
-    return res.status(400).json({
-      status: 'error',
-      message: 'Missing Google Drive Webhook URL'
-    });
-  }
+function generateCsvString(items, participantId, tripId) {
+  const headers = ['timestamp','participant_id','trip_id','latitude','longitude','accuracy','speed','ssid','bssid','rssi','user_label_mode'];
+  let csv = headers.join(',') + '\n';
+  items.forEach(row => {
+    const line = [
+      row.timestamp || new Date().toISOString(),
+      row.participant_id || participantId,
+      row.trip_id || tripId,
+      row.latitude !== null && row.latitude !== undefined ? row.latitude : '',
+      row.longitude !== null && row.longitude !== undefined ? row.longitude : '',
+      row.accuracy !== null && row.accuracy !== undefined ? row.accuracy : '',
+      row.speed !== null && row.speed !== undefined ? row.speed : '',
+      `"${(row.ssid || '').replace(/"/g, '""')}"`,
+      row.bssid || '',
+      row.rssi !== null && row.rssi !== undefined ? row.rssi : '',
+      row.user_label_mode || 'walk'
+    ];
+    csv += line.join(',') + '\n';
+  });
+  return csv;
+}
+
+app.post('/api/sync-drive', async (req, res) => {
+  const { logs: clientLogs, trip_id, participant_id, webhook_url, os, device_model } = req.body || {};
+  const targetWebhook = webhook_url || process.env.GOOGLE_DRIVE_WEBHOOK_URL || DEFAULT_GAS_URL;
 
   const logsToSync = (clientLogs && clientLogs.length > 0) ? clientLogs : logs;
   if (logsToSync.length === 0) {
     return res.status(400).json({ status: 'error', message: 'No logs to sync' });
   }
 
+  const cleanParticipantId = participant_id || 'USR-ANON';
+  const cleanTripId = trip_id || `TRIP_${Date.now()}`;
+  const csvContent = generateCsvString(logsToSync, cleanParticipantId, cleanTripId);
+  const base64Content = Buffer.from(csvContent, 'utf-8').toString('base64');
+  const filename = `${cleanParticipantId}_${cleanTripId}.csv`;
+
   try {
     const payload = {
+      // Old GAS Script parameters (from RSSI GPS Application)
+      filename: filename,
+      content: base64Content,
+      os: os || 'web',
+      deviceModel: device_model || 'web-browser',
+      participantId: cleanParticipantId,
+
+      // New GAS Script parameters (for Google Sheets real-time)
       action: 'batch_upload',
-      trip_id: trip_id || 'TRIP-DEFAULT',
-      participant_id: participant_id || 'USR-ANON',
+      trip_id: cleanTripId,
       save_csv: true,
       logs: logsToSync
     };
@@ -104,7 +134,13 @@ app.post('/api/sync-drive', async (req, res) => {
       body: JSON.stringify(payload)
     });
 
-    const result = await response.json().catch(() => ({ status: 'success', raw: 'Uploaded' }));
+    const text = await response.text();
+    let result;
+    try {
+      result = JSON.parse(text);
+    } catch (e) {
+      result = { status: 'success', raw: text };
+    }
     res.status(200).json({ status: 'ok', google_response: result });
   } catch (err) {
     res.status(500).json({ status: 'error', message: err.message });

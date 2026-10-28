@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
       localStorage.setItem('rssi_participant_id', generated);
       return generated;
     })(),
-    gdriveWebhook: localStorage.getItem('rssi_gdrive_webhook') || '',
+    gdriveWebhook: localStorage.getItem('rssi_gdrive_webhook') || 'https://script.google.com/macros/s/AKfycbwry_goxlTURpP6xBBi6jvTBfGNrhppeS4xQtPEoBVae52dNa0DnfblQgJDzj-TE_Dr/exec',
     autoSyncGdrive: localStorage.getItem('rssi_autosync_gdrive') !== 'false',
     selectedMode: 'walk',
     currentLocation: null,
