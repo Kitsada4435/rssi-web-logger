@@ -835,6 +835,36 @@ body {
   flex-shrink: 0;
 }
 
+.ios-install-tip {
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  font-size: 0.68rem;
+  color: #fbbf24;
+  line-height: 1.4;
+}
+
+.tip-title {
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.tip-desc {
+  color: var(--text-muted);
+}
+
+.tip-desc b {
+  color: #ffffff;
+}
+
+.tip-desc code {
+  color: var(--accent-cyan);
+  background: rgba(0, 0, 0, 0.3);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
 /* Settings Accordion */
 .gdrive-status-row {
   display: flex;
