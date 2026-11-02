@@ -29,6 +29,10 @@ app.all('/api/log', (req, res) => {
     query[k.trim().toLowerCase()] = typeof v === 'string' ? v.trim() : v;
   }
 
+  if (query.action === 'get') {
+    return res.status(200).json({ status: 'ok', count: logs.length, logs });
+  }
+
   // If accessed directly from browser tab, redirect to dashboard UI
   const isBrowserHtml = req.headers && req.headers.accept && req.headers.accept.includes('text/html');
   if (req.method === 'GET' && isBrowserHtml) {

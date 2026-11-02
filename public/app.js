@@ -226,7 +226,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (isPolling) return;
     isPolling = true;
     try {
-      const res = await fetch('/api/logs?t=' + Date.now(), { cache: 'no-store' });
+      const res = await fetch('/api/log?action=get&t=' + Date.now(), { cache: 'no-store' });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
 
@@ -577,7 +577,7 @@ document.addEventListener('DOMContentLoaded', () => {
   el.btnClear.addEventListener('click', async () => {
     if (confirm('ต้องการล้างข้อมูลทั้งหมดในรอบนี้หรือไม่?')) {
       try {
-        await fetch('/api/logs', { method: 'DELETE' });
+        await fetch('/api/log?action=clear', { method: 'DELETE' });
       } catch (e) {}
       lastProcessedId = 0;
       resetData();
