@@ -2,10 +2,11 @@
   "version": 2,
   "rewrites": [
     { "source": "/api/log", "destination": "/api/log.js" },
-    { "source": "/api/logs", "destination": "/api/logs.js" },
-    { "source": "/api/clear", "destination": "/api/logs.js" },
+    { "source": "/api/logs", "destination": "/api/log.js" },
+    { "source": "/api/clear", "destination": "/api/log.js" },
     { "source": "/api/export", "destination": "/api/export.js" },
-    { "source": "/api/stream", "destination": "/api/logs.js" },
+    { "source": "/api/sync-drive", "destination": "/api/sync-drive.js" },
+    { "source": "/api/stream", "destination": "/api/log.js" },
     { "source": "/(.*)", "destination": "/public/$1" }
   ]
 }

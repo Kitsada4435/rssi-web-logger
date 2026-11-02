@@ -167,8 +167,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 5. Ingest Telemetry Entry (Text-First Display)
   function ingestEntry(entry) {
-    // If incoming log is anonymous, attach current client's participant ID
-    if (!entry.participant_id || entry.participant_id === 'USR-ANON' || entry.participant_id === 'USR-DEFAULT') {
+    if (entry.participant_id && entry.participant_id !== 'USR-ANON' && entry.participant_id !== 'USR-DEFAULT') {
+      state.participantId = entry.participant_id;
+      if (el.participantInput) el.participantInput.value = entry.participant_id;
+    } else {
       entry.participant_id = state.participantId;
     }
     if (!entry.trip_id || entry.trip_id === 'TRIP-DEFAULT') {
@@ -241,10 +243,7 @@ document.addEventListener('DOMContentLoaded', () => {
           for (const entry of data.logs) {
             if (entry.id && entry.id > lastProcessedId) {
               lastProcessedId = entry.id;
-              // Accept telemetry from this participant, or anonymous logs from companion
-              if (!entry.participant_id || entry.participant_id === 'USR-ANON' || entry.participant_id === state.participantId) {
-                ingestEntry(entry);
-              }
+              ingestEntry(entry);
             }
           }
         }
