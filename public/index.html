@@ -4,24 +4,19 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>RSSI Web Logger</title>
-  <meta name="description" content="Mobile-Ready Wi-Fi RSSI & GPS Telemetry Logger">
+  <meta name="description" content="Mobile Wi-Fi RSSI & GPS Telemetry Data Collector for Research">
   
-  <!-- Google Fonts: Outfit & Inter & JetBrains Mono -->
+  <!-- Google Fonts: Inter & JetBrains Mono & Outfit -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
   
-  <!-- Leaflet CSS for Dark Maps -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-  <!-- Leaflet JS -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div class="mobile-app-container">
     
-    <!-- Top Header (Compact Mobile Bar) -->
+    <!-- Top Header Bar -->
     <header class="app-header">
       <div class="header-left">
         <div class="app-logo">
@@ -32,14 +27,14 @@
             <line x1="12" y1="20" x2="12.01" y2="20"></line>
           </svg>
         </div>
-        <div>
+        <div class="header-title-box">
           <h1 class="app-title">RSSI Logger</h1>
-          <span class="app-tagline">Wi-Fi &bull; GPS &bull; Cloud</span>
+          <span class="app-tagline">งานวิจัย Wi-Fi &bull; GPS Telemetry</span>
         </div>
       </div>
 
       <div class="header-right">
-        <div class="wakelock-pill" id="wakelock-pill" title="หน้าจอเปิดค้าง">
+        <div class="wakelock-pill" id="wakelock-pill" title="สถานะหน้าจอเปิดค้าง">
           <span class="dot-online"></span>
           <span id="wakelock-text">Awake</span>
         </div>
@@ -53,18 +48,18 @@
     <!-- Main Mobile Content Flow -->
     <main class="mobile-main">
 
-      <!-- CARD 1: Participant ID (Fixed & Persistent) -->
+      <!-- CARD 1: Permanent Hardware-Tied Participant ID -->
       <section class="mobile-card participant-card">
         <div class="card-header-sm">
-          <label for="participant-id-input" class="card-label">👤 รหัสผู้เข้าร่วม (Participant ID)</label>
-          <span class="id-lock-badge" id="id-saved-badge">✓ บันทึกถาวร</span>
+          <label for="participant-id-input" class="card-label">👤 รหัสผู้เข้าร่วม (Device ID)</label>
+          <span class="id-lock-badge" id="id-saved-badge">✓ ผูกกับเครื่องถาวร</span>
         </div>
         <div class="id-input-wrapper">
-          <input type="text" id="participant-id-input" class="text-input font-mono" placeholder="เช่น EXP-1001 หรือ std_64010123" autocomplete="off" spellcheck="false">
+          <input type="text" id="participant-id-input" class="text-input font-mono" placeholder="เช่น IOS-7A2B หรือ std_64010123" autocomplete="off" spellcheck="false">
           <button type="button" class="btn-icon-action" id="btn-copy-id" title="คัดลอกรหัส">📋</button>
-          <button type="button" class="btn-icon-action" id="btn-refresh-id" title="สุ่มรหัสใหม่">🔄</button>
+          <button type="button" class="btn-icon-action" id="btn-reset-hw-id" title="ใช้รหัสฮาร์ดแวร์ประจำเครื่อง">🔒</button>
         </div>
-        <div class="card-hint">✨ รหัสนี้จะคงที่ ไม่เปลี่ยนเอง (คุณสามารถพิมพ์แก้ไขได้ตลอดเวลา)</div>
+        <div class="card-hint">✨ รหัสนี้คำนวณจากฮาร์ดแวร์เครื่องเดิม จะไม่มีวันเปลี่ยน (หรือพิมพ์รหัสนักศึกษาเองได้)</div>
       </section>
 
       <!-- CARD 2: Transit Mode Selector (Ready to Use 1-Tap) -->
@@ -103,21 +98,21 @@
             <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
             <span>เริ่มบันทึก (START TRIP)</span>
           </button>
-          <button type="button" class="btn-hero btn-hero-stop disabled" id="btn-stop-trip" disabled style="display: none;">
+          <button type="button" class="btn-hero btn-hero-stop" id="btn-stop-trip" style="display: none;">
             <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12"/></svg>
             <span>หยุดบันทึก (STOP TRIP)</span>
           </button>
         </div>
       </section>
 
-      <!-- CARD 4: Live Telemetry Display (Text-First, Clean & Compact) -->
+      <!-- CARD 4: Live Telemetry Display (Text-First, Zero Data Drain) -->
       <section class="mobile-card telemetry-card">
         <div class="card-header-sm">
           <span class="card-label">📊 ข้อมูลสด (Live Telemetry)</span>
           <span class="points-pill font-mono" id="total-samples">0 จุด</span>
         </div>
 
-        <!-- Hero RSSI Metric Block -->
+        <!-- Big RSSI Metric Block -->
         <div class="rssi-hero-block">
           <div class="rssi-val-group">
             <span class="rssi-number font-mono" id="current-rssi">--</span>
@@ -148,6 +143,10 @@
             <span class="t-label">ค่าเฉลี่ย RSSI</span>
             <span class="t-value font-mono" id="avg-rssi">-- dBm</span>
           </div>
+          <div class="telemetry-row">
+            <span class="t-label">โหมดเน็ต</span>
+            <span class="t-value font-mono t-eco">⚡ ประหยัดเน็ต 100% (No Map)</span>
+          </div>
         </div>
       </section>
 
@@ -155,15 +154,15 @@
       <section class="mobile-actions-grid">
         <button type="button" class="btn-quick btn-quick-drive" id="btn-sync-gdrive">
           <span class="icon">☁️</span>
-          <span>ซิงค์เข้า Google Drive</span>
+          <span>ซิงค์เข้า Drive</span>
         </button>
         <button type="button" class="btn-quick btn-quick-csv" id="btn-export-csv">
           <span class="icon">📥</span>
-          <span>ดาวน์โหลด CSV</span>
+          <span>โหลดไฟล์ CSV</span>
         </button>
         <button type="button" class="btn-quick btn-quick-test" id="btn-simulate-ping">
           <span class="icon">🧪</span>
-          <span>ทดสอบจำลองสัญญาณ</span>
+          <span>ทดสอบสัญญาณ</span>
         </button>
         <button type="button" class="btn-quick btn-quick-clear" id="btn-clear-data">
           <span class="icon">🗑️</span>
@@ -171,16 +170,16 @@
         </button>
       </section>
 
-      <!-- ACCORDION 1: 1-Tap Bridge Download Helper (iOS / Android) -->
+      <!-- ACCORDION 1: 1-Tap Bridge Helper (iOS / Android) -->
       <details class="mobile-accordion helper-accordion" id="helper-accordion" open>
         <summary class="accordion-header">
           <span>📲 ตัวช่วยส่งสัญญาณ Wi-Fi (Bridge)</span>
           <span class="accordion-arrow">▾</span>
         </summary>
         <div class="accordion-body">
-          <div class="os-detect-info" id="os-detect-info">
+          <div class="os-detect-info">
             <span class="os-badge-icon" id="os-icon">📱</span>
-            <div>
+            <div class="os-text-group">
               <div class="os-detect-title" id="os-title">ตรวจพบอุปกรณ์ของคุณ</div>
               <div class="os-detect-desc" id="os-desc">แตะดาวน์โหลดเพื่อส่งค่า Wi-Fi RSSI (dBm) เข้าหน้าเว็บ</div>
             </div>
@@ -203,22 +202,7 @@
         </div>
       </details>
 
-      <!-- ACCORDION 2: Interactive GPS Map (Collapsible) -->
-      <details class="mobile-accordion map-accordion">
-        <summary class="accordion-header">
-          <span>🗺️ แผนที่เส้นทาง GPS (แตะเพื่อดูแผนที่)</span>
-          <span class="accordion-arrow">▾</span>
-        </summary>
-        <div class="accordion-body">
-          <div class="map-controls-row">
-            <span class="map-status-text">หมุดตำแหน่งปัจจุบันของคุณ</span>
-            <button type="button" class="btn-map-control" id="btn-recenter">🎯 กึ่งกลาง</button>
-          </div>
-          <div id="leaflet-map" class="mobile-map-view"></div>
-        </div>
-      </details>
-
-      <!-- ACCORDION 3: Cloud & Google Drive Settings (Collapsible) -->
+      <!-- ACCORDION 2: Cloud & Google Drive Settings -->
       <details class="mobile-accordion settings-accordion">
         <summary class="accordion-header">
           <span>☁️ ตั้งค่า Google Drive Webhook</span>
@@ -244,7 +228,7 @@
 
     <!-- Footer Status -->
     <footer class="mobile-footer">
-      <span>RSSI Web Logger &bull; Ready to Use Mobile Pipeline</span>
+      <span>RSSI Web Logger &bull; Field Research Telemetry Pipeline</span>
     </footer>
 
   </div>

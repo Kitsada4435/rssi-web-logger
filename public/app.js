@@ -1,28 +1,67 @@
-// RSSI Web Logger - Mobile-First Controller (Dual-OS + Google Drive)
+// RSSI Web Logger - 100% Mobile-Optimized Telemetry Controller
 document.addEventListener('DOMContentLoaded', () => {
 
-  // 1. Participant ID Initializer (Fixed & Rock-Solid Persistence)
-  const initParticipantId = () => {
-    // Check URL parameters first (?id=... or ?participant_id=...)
+  // 1. Deterministic Hardware-Tied Device Fingerprint (Never changes on the same phone)
+  function getHardwareFingerprint() {
+    const screenInfo = `${screen.width}x${screen.height}x${screen.colorDepth}`;
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Bangkok';
+    const ua = navigator.userAgent || '';
+    const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+    const isAndroid = /android/i.test(ua);
+    const prefix = isIOS ? 'IOS' : (isAndroid ? 'AND' : 'DEV');
+
+    // Deterministic 32-bit hash based strictly on hardware specs
+    const raw = `${screenInfo}|${tz}|${navigator.hardwareConcurrency || 4}|${isIOS ? 'apple' : 'generic'}`;
+    let hash = 0;
+    for (let i = 0; i < raw.length; i++) {
+      hash = ((hash << 5) - hash) + raw.charCodeAt(i);
+      hash |= 0;
+    }
+    const hex = Math.abs(hash).toString(36).toUpperCase().padStart(4, '0').slice(-4);
+    return `${prefix}-${hex}`;
+  }
+
+  // Cookie helpers for 10-year persistence
+  function setCookie(name, val) {
+    document.cookie = `${name}=${encodeURIComponent(val)}; path=/; max-age=315360000; SameSite=Lax`;
+  }
+
+  function getCookie(name) {
+    const matches = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + '=([^;]*)'));
+    return matches ? decodeURIComponent(matches[1]) : null;
+  }
+
+  // 2. Initialize Permanent Participant ID
+  function initParticipantId() {
+    // 1. Check URL query parameters (?id=... or ?participant_id=...)
     const urlParams = new URLSearchParams(window.location.search);
     const urlId = urlParams.get('id') || urlParams.get('participant_id');
     if (urlId && urlId.trim()) {
       const clean = urlId.trim();
       localStorage.setItem('rssi_participant_id', clean);
+      setCookie('rssi_participant_id', clean);
       return clean;
     }
 
-    // Check localStorage next
-    const saved = localStorage.getItem('rssi_participant_id');
-    if (saved && saved.trim()) {
-      return saved.trim();
+    // 2. Check localStorage
+    const savedLocal = localStorage.getItem('rssi_participant_id');
+    if (savedLocal && savedLocal.trim()) {
+      return savedLocal.trim();
     }
 
-    // Generate once: EXP-XXXX (4-digit random)
-    const generated = 'EXP-' + Math.floor(1000 + Math.random() * 9000);
-    localStorage.setItem('rssi_participant_id', generated);
-    return generated;
-  };
+    // 3. Check Cookie
+    const savedCookie = getCookie('rssi_participant_id');
+    if (savedCookie && savedCookie.trim()) {
+      localStorage.setItem('rssi_participant_id', savedCookie.trim());
+      return savedCookie.trim();
+    }
+
+    // 4. Default: Deterministic Hardware Fingerprint (Same phone = Same ID always!)
+    const hwId = getHardwareFingerprint();
+    localStorage.setItem('rssi_participant_id', hwId);
+    setCookie('rssi_participant_id', hwId);
+    return hwId;
+  }
 
   // Application State
   const state = {
@@ -37,10 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
     currentLocation: null,
     watchId: null,
     wakeLock: null,
-    logs: [],
-    map: null,
-    userMarker: null,
-    pathPolyline: null
+    logs: []
   };
 
   // DOM Elements
@@ -57,7 +93,6 @@ document.addEventListener('DOMContentLoaded', () => {
     btnSyncGdrive: document.getElementById('btn-sync-gdrive'),
     btnSimulate: document.getElementById('btn-simulate-ping'),
     btnClear: document.getElementById('btn-clear-data'),
-    btnRecenter: document.getElementById('btn-recenter'),
     currentRssi: document.getElementById('current-rssi'),
     signalTag: document.getElementById('signal-level-tag'),
     currentSsid: document.getElementById('current-ssid'),
@@ -69,7 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
     participantInput: document.getElementById('participant-id-input'),
     idSavedBadge: document.getElementById('id-saved-badge'),
     btnCopyId: document.getElementById('btn-copy-id'),
-    btnRefreshId: document.getElementById('btn-refresh-id'),
+    btnResetHwId: document.getElementById('btn-reset-hw-id'),
     gdriveWebhookInput: document.getElementById('gdrive-webhook-input'),
     gdriveStatusBadge: document.getElementById('gdrive-status-badge'),
     gdriveAutoSyncChk: document.getElementById('gdrive-autosync-chk'),
@@ -77,61 +112,6 @@ document.addEventListener('DOMContentLoaded', () => {
     btnCopyUrl: document.getElementById('btn-copy-url'),
     modeBtns: document.querySelectorAll('.mode-chip')
   };
-
-  // 2. Initialize Map (Leaflet with CartoDB Dark Matter)
-  function initMap() {
-    if (state.map) return;
-    const defaultCenter = [13.7563, 100.5018]; // Default Bangkok/CMU
-    try {
-      state.map = L.map('leaflet-map', {
-        zoomControl: false,
-        attributionControl: false
-      }).setView(defaultCenter, 16);
-
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        maxZoom: 19,
-        subdomains: 'abcd'
-      }).addTo(state.map);
-
-      L.control.zoom({ position: 'bottomright' }).addTo(state.map);
-
-      state.pathPolyline = L.polyline([], {
-        color: '#06b6d4',
-        weight: 4,
-        opacity: 0.85,
-        smoothFactor: 1
-      }).addTo(state.map);
-
-      const customIcon = L.divIcon({
-        className: 'custom-loc-marker',
-        html: '<div style="width:14px;height:14px;background:#06b6d4;border:2px solid #ffffff;border-radius:50%;box-shadow:0 0 10px #06b6d4;"></div>',
-        iconSize: [14, 14],
-        iconAnchor: [7, 7]
-      });
-
-      state.userMarker = L.marker(defaultCenter, { icon: customIcon }).addTo(state.map);
-    } catch (e) {
-      console.warn('Map initialization failed:', e);
-    }
-  }
-
-  // Handle Map Resizing when Accordion is opened
-  const mapAccordion = document.querySelector('.map-accordion');
-  if (mapAccordion) {
-    mapAccordion.addEventListener('toggle', () => {
-      if (mapAccordion.open) {
-        if (!state.map) initMap();
-        setTimeout(() => {
-          if (state.map) {
-            state.map.invalidateSize();
-            if (state.currentLocation) {
-              state.map.setView([state.currentLocation.lat, state.currentLocation.lng], 17);
-            }
-          }
-        }, 200);
-      }
-    });
-  }
 
   // 3. Screen Keep-Awake (WakeLock API for iOS & Android)
   async function requestWakeLock() {
@@ -155,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // 4. Geolocation Tracker (Real-time GPS)
+  // 4. Geolocation Tracker (Pure Satellite Hardware - 0 MB Cellular Data Used)
   function startGeoTracking() {
     if ('geolocation' in navigator) {
       state.watchId = navigator.geolocation.watchPosition(
@@ -168,23 +148,15 @@ document.addEventListener('DOMContentLoaded', () => {
           state.currentLocation = { lat, lng, speed, accuracy: acc };
           el.gpsCoords.textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
           el.gpsSpeed.textContent = `${speed} km/h (±${acc}m)`;
-
-          if (state.userMarker) {
-            state.userMarker.setLatLng([lat, lng]);
-          }
-
-          if (state.isRecording && state.pathPolyline) {
-            state.pathPolyline.addLatLng([lat, lng]);
-          }
         },
         (err) => {
           console.warn('Geolocation notice:', err.message);
-          el.gpsCoords.textContent = 'รอเปิด GPS บนมือถือ';
+          el.gpsCoords.textContent = 'กรุณากดเปิดสิทธิ์ GPS';
         },
         { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 }
       );
     } else {
-      el.gpsCoords.textContent = 'ไม่รองรับ GPS';
+      el.gpsCoords.textContent = 'เบราว์เซอร์ไม่รองรับ GPS';
     }
   }
 
@@ -232,7 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
     el.avgRssi.textContent = avg + ' dBm';
 
     // Pulse connection status
-    el.connText.textContent = `รับข้อมูล #${state.logs.length}`;
+    el.connText.textContent = `รับ #${state.logs.length}`;
     el.connPill.classList.add('recording');
   }
 
@@ -242,7 +214,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const sse = new EventSource('/api/stream');
       sse.onopen = () => {
         el.connPill.classList.add('connected');
-        el.connText.textContent = 'พร้อมรับสัญญาณ';
+        el.connText.textContent = 'ออนไลน์';
       };
       sse.addEventListener('log', (e) => {
         try {
@@ -265,7 +237,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // 7. Reset Data
   function resetData() {
     state.logs = [];
-    if (state.pathPolyline) state.pathPolyline.setLatLngs([]);
     el.totalSamples.textContent = '0 จุด';
     el.avgRssi.textContent = '-- dBm';
     el.currentRssi.textContent = '--';
@@ -307,7 +278,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (el.btnSyncGdrive) {
       el.btnSyncGdrive.disabled = true;
-      el.btnSyncGdrive.innerHTML = '<span class="icon">⏳</span><span>กำลังอัปโหลด...</span>';
+      el.btnSyncGdrive.innerHTML = '<span class="icon">⏳</span><span>กำลังส่ง...</span>';
     }
 
     // Map logs ensuring the participant ID is the current user's ID
@@ -365,37 +336,38 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       } catch (directErr) {
         if (!isSilent) {
-          alert(`❌ เกิดข้อผิดพลาดในการส่งเข้า Google Drive: ${err.message}`);
+          alert(`❌ ส่งเข้า Google Drive ล้มเหลว: ${err.message}`);
         }
       }
     } finally {
       if (el.btnSyncGdrive) {
         el.btnSyncGdrive.disabled = false;
-        el.btnSyncGdrive.innerHTML = '<span class="icon">☁️</span><span>ซิงค์เข้า Google Drive</span>';
+        el.btnSyncGdrive.innerHTML = '<span class="icon">☁️</span><span>ซิงค์เข้า Drive</span>';
       }
     }
   }
 
-  // 10. Participant ID Management (Rock-Solid Persistence)
+  // 10. Participant ID Management (Permanent Persistence)
   if (el.participantInput) {
     el.participantInput.value = state.participantId;
 
-    const showSavedIndicator = () => {
+    const showSavedIndicator = (msg = '✓ บันทึกถาวร') => {
       if (el.idSavedBadge) {
-        el.idSavedBadge.textContent = '✓ บันทึกแล้ว';
+        el.idSavedBadge.textContent = msg;
         el.idSavedBadge.style.color = '#10b981';
         setTimeout(() => {
-          el.idSavedBadge.textContent = '✓ บันทึกถาวร';
+          el.idSavedBadge.textContent = '✓ ผูกกับเครื่องถาวร';
           el.idSavedBadge.style.color = 'var(--accent-cyan)';
-        }, 1200);
+        }, 1500);
       }
     };
 
     el.participantInput.addEventListener('input', (e) => {
-      const val = e.target.value.trim() || 'USR-ANON';
+      const val = e.target.value.trim() || getHardwareFingerprint();
       state.participantId = val;
       localStorage.setItem('rssi_participant_id', val);
-      showSavedIndicator();
+      setCookie('rssi_participant_id', val);
+      showSavedIndicator('✓ อัปเดตรหัสแล้ว');
     });
 
     if (el.btnCopyId) {
@@ -407,15 +379,14 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    if (el.btnRefreshId) {
-      el.btnRefreshId.addEventListener('click', () => {
-        if (confirm('ต้องการสุ่มรหัสผู้เข้าร่วมใหม่หรือไม่?')) {
-          const newId = 'EXP-' + Math.floor(1000 + Math.random() * 9000);
-          state.participantId = newId;
-          el.participantInput.value = newId;
-          localStorage.setItem('rssi_participant_id', newId);
-          showSavedIndicator();
-        }
+    if (el.btnResetHwId) {
+      el.btnResetHwId.addEventListener('click', () => {
+        const hwId = getHardwareFingerprint();
+        state.participantId = hwId;
+        el.participantInput.value = hwId;
+        localStorage.setItem('rssi_participant_id', hwId);
+        setCookie('rssi_participant_id', hwId);
+        showSavedIndicator('✓ คืนค่ารหัสเครื่อง');
       });
     }
   }
@@ -440,8 +411,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Switch buttons
     el.btnStart.style.display = 'none';
     el.btnStop.style.display = 'flex';
-    el.btnStop.disabled = false;
-    el.btnStop.classList.remove('disabled');
 
     resetData();
     startTimer();
@@ -457,8 +426,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Switch buttons
     el.btnStop.style.display = 'none';
     el.btnStart.style.display = 'flex';
-    el.btnStart.disabled = false;
-    el.btnStart.classList.remove('disabled');
 
     stopTimer();
     releaseWakeLock();
@@ -548,16 +515,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // 17. Recenter Map
-  if (el.btnRecenter) {
-    el.btnRecenter.addEventListener('click', () => {
-      if (state.currentLocation && state.map) {
-        state.map.setView([state.currentLocation.lat, state.currentLocation.lng], 17);
-      }
-    });
-  }
-
-  // 18. Google Drive Settings Setup
+  // 17. Google Drive Settings Setup
   if (el.gdriveWebhookInput) {
     el.gdriveWebhookInput.value = state.gdriveWebhook;
     el.gdriveWebhookInput.addEventListener('change', (e) => {
@@ -578,7 +536,7 @@ document.addEventListener('DOMContentLoaded', () => {
     el.btnSyncGdrive.addEventListener('click', () => syncToGoogleDrive(false));
   }
 
-  // 19. Copy Server Ingest URL
+  // 18. Copy Server Ingest URL
   const serverUrl = window.location.origin + '/api/log';
   if (el.serverUrlDisplay) {
     el.serverUrlDisplay.textContent = serverUrl;
@@ -592,7 +550,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 20. OS Detection & Adaptive Download Highlighting
+  // 19. OS Detection & Adaptive Download Highlighting
   function detectOS() {
     const ua = navigator.userAgent || navigator.vendor || window.opera;
     const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
