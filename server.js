@@ -24,6 +24,13 @@ function broadcast(event, data) {
 // 1. Ingest Log Endpoint (Supports both GET & POST from Apple Shortcuts / Android Companion)
 app.all('/api/log', (req, res) => {
   const query = req.method === 'GET' ? req.query : { ...req.query, ...req.body };
+
+  // If accessed directly from browser without telemetry parameters, redirect to dashboard UI
+  const isBrowserHtml = req.headers && req.headers.accept && req.headers.accept.includes('text/html');
+  const hasTelemetry = query.bssid || query.ssid || query.rssi !== undefined;
+  if (req.method === 'GET' && isBrowserHtml && !hasTelemetry) {
+    return res.redirect('/');
+  }
   
   const bssid = query.bssid || query.bssi || 'unknown';
   const ssid = query.ssid || query.ssi || 'unknown';

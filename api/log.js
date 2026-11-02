@@ -14,6 +14,15 @@ module.exports = async (req, res) => {
   }
 
   const query = req.method === 'GET' ? req.query : { ...req.query, ...req.body };
+
+  // If accessed directly from a web browser without telemetry parameters, redirect to dashboard UI
+  const isBrowserHtml = req.headers && req.headers.accept && req.headers.accept.includes('text/html');
+  const hasTelemetry = query.bssid || query.ssid || query.rssi !== undefined;
+  if (req.method === 'GET' && isBrowserHtml && !hasTelemetry) {
+    res.writeHead(302, { Location: '/' });
+    res.end();
+    return;
+  }
   
   const bssid = query.bssid || query.bssi || 'unknown';
   const ssid = query.ssid || query.ssi || 'unknown';
