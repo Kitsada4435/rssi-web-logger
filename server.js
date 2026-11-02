@@ -23,7 +23,11 @@ function broadcast(event, data) {
 
 // 1. Ingest Log Endpoint (Supports both GET & POST from Apple Shortcuts / Android Companion)
 app.all('/api/log', (req, res) => {
-  const query = req.method === 'GET' ? req.query : { ...req.query, ...req.body };
+  const rawQuery = req.method === 'GET' ? req.query : { ...req.query, ...req.body };
+  const query = {};
+  for (const [k, v] of Object.entries(rawQuery)) {
+    query[k.trim().toLowerCase()] = typeof v === 'string' ? v.trim() : v;
+  }
 
   // If accessed directly from browser tab, redirect to dashboard UI
   const isBrowserHtml = req.headers && req.headers.accept && req.headers.accept.includes('text/html');

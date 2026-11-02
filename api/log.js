@@ -13,7 +13,11 @@ module.exports = async (req, res) => {
     return;
   }
 
-  const query = req.method === 'GET' ? req.query : { ...req.query, ...req.body };
+  const rawQuery = req.method === 'GET' ? req.query : { ...req.query, ...req.body };
+  const query = {};
+  for (const [k, v] of Object.entries(rawQuery)) {
+    query[k.trim().toLowerCase()] = typeof v === 'string' ? v.trim() : v;
+  }
 
   // If accessed directly from a web browser tab (Safari / Chrome), redirect to dashboard UI
   const isBrowserHtml = req.headers && req.headers.accept && req.headers.accept.includes('text/html');
