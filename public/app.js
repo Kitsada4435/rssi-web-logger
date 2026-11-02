@@ -211,30 +211,52 @@ document.addEventListener('DOMContentLoaded', () => {
     el.connPill.classList.add('recording');
   }
 
-  // 6. Connect Real-time SSE Stream
-  function connectStream() {
-    if (window.EventSource) {
-      const sse = new EventSource('/api/stream');
-      sse.onopen = () => {
+  // 6. Calm Real-Time Telemetry Polling (Zero Screen Flickering, 100% Vercel & Battery Compatible)
+  let lastProcessedId = 0;
+  let isPolling = false;
+
+  async function pollTelemetry() {
+    if (isPolling) return;
+    isPolling = true;
+    try {
+      const res = await fetch('/api/logs?t=' + Date.now(), { cache: 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+
+      if (el.connPill) {
         el.connPill.classList.add('connected');
-        el.connText.textContent = 'ออนไลน์';
-      };
-      sse.addEventListener('log', (e) => {
-        try {
-          const entry = JSON.parse(e.data);
-          ingestEntry(entry);
-        } catch (err) {
-          console.error(err);
+        el.connText.textContent = state.logs.length > 0 ? `รับ #${state.logs.length}` : 'ออนไลน์';
+      }
+
+      if (data && Array.isArray(data.logs)) {
+        if (data.logs.length === 0 && lastProcessedId > 0) {
+          lastProcessedId = 0;
+          resetData();
+        } else {
+          for (const entry of data.logs) {
+            if (entry.id && entry.id > lastProcessedId) {
+              lastProcessedId = entry.id;
+              // Accept telemetry from this participant, or anonymous logs from companion
+              if (!entry.participant_id || entry.participant_id === 'USR-ANON' || entry.participant_id === state.participantId) {
+                ingestEntry(entry);
+              }
+            }
+          }
         }
-      });
-      sse.addEventListener('clear', () => {
-        resetData();
-      });
-      sse.onerror = () => {
+      }
+    } catch (err) {
+      if (el.connPill) {
         el.connPill.classList.remove('connected');
-        el.connText.textContent = 'ออฟไลน์';
-      };
+        el.connText.textContent = 'พร้อมรับข้อมูล';
+      }
+    } finally {
+      isPolling = false;
     }
+  }
+
+  function startTelemetryEngine() {
+    pollTelemetry();
+    setInterval(pollTelemetry, 2500); // Poll calmly every 2.5s
   }
 
   // 7. Reset Data
@@ -522,10 +544,13 @@ document.addEventListener('DOMContentLoaded', () => {
         body: JSON.stringify(simulatedPayload)
       });
       const data = await res.json();
-      if (!window.EventSource) ingestEntry(data.entry);
+      if (data && data.entry) {
+        lastProcessedId = data.entry.id;
+        ingestEntry(data.entry);
+      }
     } catch (e) {
       ingestEntry({
-        id: state.logs.length + 1,
+        id: ++lastProcessedId,
         timestamp: new Date().toISOString(),
         ...simulatedPayload
       });
@@ -536,8 +561,9 @@ document.addEventListener('DOMContentLoaded', () => {
   el.btnClear.addEventListener('click', async () => {
     if (confirm('ต้องการล้างข้อมูลทั้งหมดในรอบนี้หรือไม่?')) {
       try {
-        await fetch('/api/clear', { method: 'DELETE' });
+        await fetch('/api/logs', { method: 'DELETE' });
       } catch (e) {}
+      lastProcessedId = 0;
       resetData();
     }
   });
@@ -611,5 +637,5 @@ document.addEventListener('DOMContentLoaded', () => {
   // Boot Application
   detectOS();
   startGeoTracking();
-  connectStream();
+  startTelemetryEngine();
 });

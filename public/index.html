@@ -206,12 +206,38 @@
             </div>
           </div>
           <div class="ios-install-tip">
-            <div class="tip-title">💡 หาก iPhone ขึ้นเตือน "ไม่สามารถเปิดคำสั่งลัดได้":</div>
-            <div class="tip-desc">
-              1. เปิดแอป <b>"ไฟล์" (Files)</b> บน iPhone<br>
-              2. เข้าโฟลเดอร์ <b>"ดาวน์โหลด" (Downloads)</b><br>
-              3. <b>แตะค้าง</b> ที่ไฟล์ <code>Send Rssi Logger web.shortcut</code><br>
-              4. เลือก <b>"แชร์" (Share)</b> &gt; เลือกแอป <b>"คำสั่งลัด" (Shortcuts)</b>
+            <div class="tip-alert-box">
+              <span class="tip-alert-badge">🛑 หยุดหน้ารีเฟรชรัวๆ:</span>
+              <span>แตะที่แถบด้านบน (Dynamic Island) หรือเปิดแอปคำสั่งลัด แล้วกด <b>"หยุด" (Stop)</b> ทันที</span>
+            </div>
+
+            <div class="tip-warning-box">
+              <div class="tip-title">⚠️ กฎสำคัญมากในการตั้งค่าคำสั่งลัด iOS:</div>
+              <div class="tip-desc">
+                ในแอปคำสั่งลัด ต้องใช้คำสั่ง <b>"ดึงข้อมูลจาก URL" (Get contents of URL)</b> เท่านั้น<br>
+                <b class="text-danger">❌ ห้ามเลือกคำสั่ง "เปิด URL" (Open URL) เด็ดขาด</b> เพราะจะทำให้ Safari เด้งเปิดหน้าเว็บและรีเฟรชรัวๆ ทุก 1 วินาที
+              </div>
+            </div>
+
+            <div class="tip-section">
+              <div class="tip-title">💡 วิธีสร้างคำสั่งลัดเองใน 30 วินาที (แนะนำที่สุด):</div>
+              <div class="tip-desc">
+                เปิดแอป <b>"คำสั่งลัด" (Shortcuts)</b> &gt; กด <b>+ (สร้างใหม่)</b> แล้วเพิ่ม 4 คำสั่ง:<br>
+                1. <b>"รับรายละเอียดเครือข่าย Wi-Fi"</b> &gt; ดึง <i>ความแรงสัญญาณ Wi-Fi (RSSI)</i><br>
+                2. <b>"URL"</b> &gt; ใส่: <code>https://rssi-web-logger.vercel.app/api/log?rssi=[RSSI]&participant_id=[ชื่อเครื่อง]</code><br>
+                3. <b>"ดึงข้อมูลจาก URL"</b> (วิธี: GET) &gt; ส่งข้อมูลเงียบๆ หลังบ้าน<br>
+                4. <b>"รอ"</b> 1 วินาที (ใส่ใน <b>"ทำซ้ำ"</b> 300 ครั้ง)
+              </div>
+            </div>
+
+            <div class="tip-section">
+              <div class="tip-title">📂 หากต้องการนำเข้าไฟล์ที่ดาวน์โหลด (แก้เตือน "ไม่สามารถเปิดคำสั่งลัดได้"):</div>
+              <div class="tip-desc">
+                1. เปิดแอป <b>"ไฟล์" (Files)</b> บน iPhone<br>
+                2. ไปที่โฟลเดอร์ <b>"ดาวน์โหลด" (Downloads)</b><br>
+                3. <b>แตะค้าง</b> ที่ไฟล์ <code>Send Rssi Logger web.shortcut</code><br>
+                4. เลือก <b>"แชร์" (Share)</b> &gt; เลือกแอป <b>"คำสั่งลัด" (Shortcuts)</b>
+              </div>
             </div>
           </div>
         </div>

@@ -836,17 +836,46 @@ body {
 }
 
 .ios-install-tip {
-  background: rgba(245, 158, 11, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: rgba(15, 23, 42, 0.7);
   border: 1px solid rgba(245, 158, 11, 0.25);
   border-radius: var(--radius-sm);
-  padding: 6px 8px;
+  padding: 8px 10px;
   font-size: 0.68rem;
-  color: #fbbf24;
   line-height: 1.4;
+}
+
+.tip-alert-box {
+  background: rgba(244, 63, 94, 0.15);
+  border: 1px solid rgba(244, 63, 94, 0.4);
+  padding: 6px 8px;
+  border-radius: 6px;
+  color: #fda4af;
+  font-weight: 600;
+}
+
+.tip-alert-badge {
+  color: #f43f5e;
+  font-weight: 800;
+}
+
+.tip-warning-box {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  padding: 6px 8px;
+  border-radius: 6px;
+}
+
+.tip-section {
+  padding-top: 4px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.08);
 }
 
 .tip-title {
   font-weight: 700;
+  color: #fbbf24;
   margin-bottom: 2px;
 }
 
@@ -858,11 +887,16 @@ body {
   color: #ffffff;
 }
 
+.tip-desc .text-danger {
+  color: #f87171 !important;
+}
+
 .tip-desc code {
   color: var(--accent-cyan);
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(0, 0, 0, 0.4);
   padding: 1px 4px;
   border-radius: 3px;
+  word-break: break-all;
 }
 
 /* Settings Accordion */
