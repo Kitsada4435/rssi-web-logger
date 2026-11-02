@@ -110,6 +110,9 @@ document.addEventListener('DOMContentLoaded', () => {
     gdriveAutoSyncChk: document.getElementById('gdrive-autosync-chk'),
     serverUrlDisplay: document.getElementById('server-url-display'),
     btnCopyUrl: document.getElementById('btn-copy-url'),
+    syncToast: document.getElementById('sync-toast'),
+    syncToastIcon: document.getElementById('sync-toast-icon'),
+    syncToastText: document.getElementById('sync-toast-text'),
     modeBtns: document.querySelectorAll('.mode-chip')
   };
 
@@ -264,9 +267,28 @@ document.addEventListener('DOMContentLoaded', () => {
     state.timerInterval = null;
   }
 
+  // Helper: Live Google Drive Sync Toast
+  function showSyncToast(type, message) {
+    if (!el.syncToast) return;
+    el.syncToast.style.display = 'flex';
+    el.syncToast.className = 'sync-toast-banner ' + (type === 'success' ? 'toast-success' : (type === 'error' ? 'toast-error' : ''));
+    if (el.syncToastIcon) {
+      el.syncToastIcon.textContent = type === 'success' ? '✅' : (type === 'error' ? '❌' : '⏳');
+    }
+    if (el.syncToastText) {
+      el.syncToastText.textContent = message;
+    }
+    if (type === 'success' || type === 'error') {
+      setTimeout(() => {
+        if (el.syncToast) el.syncToast.style.display = 'none';
+      }, 5000);
+    }
+  }
+
   // 9. Google Drive Sync Engine
   async function syncToGoogleDrive(isSilent = false) {
     if (!state.gdriveWebhook) {
+      showSyncToast('error', 'ไม่ได้ตั้งค่า Webhook URL');
       if (!isSilent) alert('กรุณาระบุ Google Apps Script Webhook URL ในส่วนตั้งค่าก่อน');
       return;
     }
@@ -296,6 +318,8 @@ document.addEventListener('DOMContentLoaded', () => {
       user_label_mode: row.user_label_mode || state.selectedMode
     }));
 
+    showSyncToast('loading', `กำลังอัปโหลด ${payloadLogs.length} จุดเข้า Google Drive...`);
+
     try {
       const res = await fetch('/api/sync-drive', {
         method: 'POST',
@@ -310,6 +334,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const data = await res.json();
       if (res.ok && data.status === 'ok') {
+        showSyncToast('success', `บันทึกเข้า Google Drive สำเร็จแล้ว (${payloadLogs.length} จุด)`);
         if (!isSilent) {
           alert(`✅ บันทึกสำเร็จ! ข้อมูล ${payloadLogs.length} จุดถูกส่งเข้า Google Drive เรียบร้อยแล้ว`);
         }
@@ -331,10 +356,12 @@ document.addEventListener('DOMContentLoaded', () => {
             logs: payloadLogs
           })
         });
+        showSyncToast('success', `ส่งข้อมูล ${payloadLogs.length} จุดเข้า Google Drive เรียบร้อย`);
         if (!isSilent) {
           alert(`✅ ส่งข้อมูล ${payloadLogs.length} จุดเข้า Google Drive เรียบร้อยแล้ว`);
         }
       } catch (directErr) {
+        showSyncToast('error', `ส่งเข้า Google Drive ไม่สำเร็จ (แตะ "ซิงค์เข้า Drive" เพื่อลองใหม่)`);
         if (!isSilent) {
           alert(`❌ ส่งเข้า Google Drive ล้มเหลว: ${err.message}`);
         }
