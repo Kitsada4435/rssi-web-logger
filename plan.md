@@ -27,6 +27,7 @@
 | 9 | เชื่อมต่อระบบบันทึกข้อมูลเข้า Google Drive & Google Sheets | Vercel & Cloud | ✅ เสร็จสิ้น |
 | 10 | เพิ่มระบบ Screen Wake Lock ป้องกันจอดับขณะบันทึกข้อมูล | iOS & Android | ✅ เสร็จสิ้น |
 | 11 | การทดสอบ Local/E2E และ Deploy พร้อมใช้งานบน GitHub/Vercel | ทั้งหมด | ✅ เสร็จสิ้น |
+| 12 | ปรับปรุง UX/UI ให้เป็น Mobile-First (Text-First Telemetry, แก้ไขรหัสผู้เข้าร่วมให้คงที่ถาวร) | ทั้งหมด | ✅ เสร็จสิ้น |
 
 ---
 
