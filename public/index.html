@@ -3,39 +3,29 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>RSSI Web Logger</title>
-  <meta name="description" content="Mobile Wi-Fi RSSI & GPS Telemetry Data Collector for Research">
+  <title>RSSI Logger</title>
+  <meta name="description" content="Minimalist Wi-Fi RSSI & Telemetry Field Logger">
   
-  <!-- Google Fonts: Inter & JetBrains Mono & Outfit -->
+  <!-- Modern Clean Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
   
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div class="mobile-app-container">
     
-    <!-- Top Header Bar -->
+    <!-- Minimalist Header -->
     <header class="app-header">
-      <div class="header-left">
-        <div class="app-logo">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
-            <path d="M1.42 9a16 16 0 0 1 21.16 0"></path>
-            <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
-            <line x1="12" y1="20" x2="12.01" y2="20"></line>
-          </svg>
-        </div>
-        <div class="header-title-box">
-          <h1 class="app-title">RSSI Logger</h1>
-          <span class="app-tagline">งานวิจัย Wi-Fi &bull; GPS Telemetry</span>
-        </div>
+      <div class="header-brand">
+        <span class="brand-title">RSSI Logger</span>
+        <span class="brand-sub">Field Telemetry</span>
       </div>
 
-      <div class="header-right">
-        <div class="wakelock-pill" id="wakelock-pill" title="สถานะหน้าจอเปิดค้าง">
-          <span class="dot-online"></span>
+      <div class="header-status-group">
+        <div class="status-pill pill-subtle" id="wakelock-pill">
+          <span class="dot-awake"></span>
           <span id="wakelock-text">Awake</span>
         </div>
         <div class="status-pill" id="connection-pill">
@@ -45,230 +35,198 @@
       </div>
     </header>
 
-    <!-- Main Mobile Content Flow -->
+    <!-- Main Content Flow -->
     <main class="mobile-main">
 
-      <!-- CARD 1: Permanent Hardware-Tied Participant ID -->
-      <section class="mobile-card participant-card">
-        <div class="card-header-sm">
-          <label for="participant-id-input" class="card-label">👤 รหัสผู้เข้าร่วม (Device ID)</label>
-          <span class="id-lock-badge" id="id-saved-badge">✓ ผูกกับเครื่องถาวร</span>
-        </div>
-        <div class="id-input-wrapper">
-          <input type="text" id="participant-id-input" class="text-input font-mono" placeholder="เช่น IOS-7A2B หรือ std_64010123" autocomplete="off" spellcheck="false">
-          <button type="button" class="btn-icon-action" id="btn-copy-id" title="คัดลอกรหัส">📋</button>
-          <button type="button" class="btn-icon-action" id="btn-reset-hw-id" title="ใช้รหัสฮาร์ดแวร์ประจำเครื่อง">🔒</button>
-        </div>
-        <div class="card-hint">✨ รหัสนี้คำนวณจากฮาร์ดแวร์เครื่องเดิม จะไม่มีวันเปลี่ยน (หรือพิมพ์รหัสนักศึกษาเองได้)</div>
-      </section>
-
-      <!-- CARD 2: Transit Mode Selector (Ready to Use 1-Tap) -->
-      <section class="mobile-card mode-card">
-        <div class="card-label">โหมดการเดินทาง (Transit Mode)</div>
-        <div class="mode-chips-grid">
-          <button type="button" class="mode-chip active" data-mode="walk" id="mode-walk-btn">
-            <span class="chip-icon">🚶</span>
-            <span class="chip-text">เดิน</span>
-          </button>
-          <button type="button" class="mode-chip" data-mode="bike" id="mode-bike-btn">
-            <span class="chip-icon">🚲</span>
-            <span class="chip-text">จักรยาน</span>
-          </button>
-          <button type="button" class="mode-chip" data-mode="moto" id="mode-moto-btn">
-            <span class="chip-icon">🛵</span>
-            <span class="chip-text">มอไซค์</span>
-          </button>
-          <button type="button" class="mode-chip" data-mode="car" id="mode-car-btn">
-            <span class="chip-icon">🚗</span>
-            <span class="chip-text">รถยนต์</span>
-          </button>
-        </div>
-      </section>
-
-      <!-- CARD 2.5: Optional Location / Research Details -->
-      <section class="mobile-card note-card">
-        <div class="card-header-sm">
-          <label for="trip-note-input" class="card-label">📍 รายละเอียดสถานที่ / บันทึก (Location & Notes)</label>
-          <span class="optional-badge">ไม่บังคับ</span>
-        </div>
-        <input type="text" id="trip-note-input" class="text-input" placeholder="เช่น อาคารวิศวะ ชั้น 3, โซนโรงอาหาร, ห้อง Lab 402" autocomplete="off">
-        <div class="card-hint">ใช้ระบุชั้น อาคาร หรือจุดสังเกตเพื่อช่วยจำแนกกลุ่มข้อมูลในงานวิจัย</div>
-      </section>
-
-      <!-- CARD 3: Main Big Action Button (Ready to Use) -->
-      <section class="mobile-card main-action-card">
-        <div class="trip-timer-banner">
-          <span class="timer-label">ระยะเวลาบันทึก:</span>
-          <span class="timer-digits font-mono" id="trip-timer">00:00:00</span>
-          <span class="trip-badge font-mono" id="trip-id-badge">IDLE</span>
+      <!-- HERO TELEMETRY DISPLAY (Centerpiece) -->
+      <section class="card-hero-telemetry">
+        <div class="hero-top-bar">
+          <span class="badge-status-tag" id="signal-level-tag">รอสัญญาณ</span>
+          <span class="samples-count font-mono" id="total-samples">0 จุด</span>
         </div>
 
-        <div class="action-btn-row">
-          <button type="button" class="btn-hero btn-hero-start" id="btn-start-trip">
-            <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        <div class="hero-metric-wrap">
+          <div class="metric-val-row font-mono">
+            <span class="rssi-large font-mono" id="current-rssi">--</span>
+            <span class="rssi-unit font-mono">dBm</span>
+          </div>
+        </div>
+
+        <!-- Big Minimalist Action Button -->
+        <div class="hero-action-box">
+          <div class="timer-row">
+            <span class="timer-clock font-mono" id="trip-timer">00:00:00</span>
+            <span class="timer-trip-id font-mono" id="trip-id-badge">IDLE</span>
+          </div>
+
+          <button type="button" class="btn-primary-action btn-state-start" id="btn-start-trip">
             <span>เริ่มบันทึก (START TRIP)</span>
           </button>
-          <button type="button" class="btn-hero btn-hero-stop" id="btn-stop-trip" style="display: none;">
-            <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12"/></svg>
+          <button type="button" class="btn-primary-action btn-state-stop" id="btn-stop-trip" style="display: none;">
             <span>หยุดบันทึก (STOP TRIP)</span>
           </button>
         </div>
 
-        <!-- Real-Time Drive Upload Notification Toast -->
+        <!-- Upload Notification Toast -->
         <div class="sync-toast-banner" id="sync-toast" style="display: none;">
           <span class="toast-icon" id="sync-toast-icon">⏳</span>
-          <span class="toast-text" id="sync-toast-text">กำลังอัปโหลดเข้า Google Drive...</span>
+          <span class="toast-text" id="sync-toast-text">กำลังอัปโหลด...</span>
         </div>
       </section>
 
-      <!-- CARD 4: Live Telemetry Display (Text-First, Zero Data Drain) -->
-      <section class="mobile-card telemetry-card">
-        <div class="card-header-sm">
-          <span class="card-label">📊 ข้อมูลสด (Live Telemetry)</span>
-          <span class="points-pill font-mono" id="total-samples">0 จุด</span>
+      <!-- SETUP CARD: Identity & Transit Mode -->
+      <section class="card-clean card-setup">
+        <!-- Participant Device ID -->
+        <div class="setup-row">
+          <div class="setup-label-group">
+            <label for="participant-id-input" class="label-clean">รหัสเครื่อง (Device ID)</label>
+            <span class="id-lock-badge font-mono" id="id-saved-badge">✓ ผูกถาวร</span>
+          </div>
+          <div class="input-inline-wrap">
+            <input type="text" id="participant-id-input" class="input-clean font-mono" placeholder="IOS-7A2B" autocomplete="off" spellcheck="false">
+            <button type="button" class="btn-ghost-sm" id="btn-copy-id" title="คัดลอก">📋</button>
+            <button type="button" class="btn-ghost-sm" id="btn-reset-hw-id" title="รีเซ็ตเป็นรหัสเครื่อง">🔒</button>
+          </div>
         </div>
 
-        <!-- Big RSSI Metric Block -->
-        <div class="rssi-hero-block">
-          <div class="rssi-val-group">
-            <span class="rssi-number font-mono" id="current-rssi">--</span>
-            <span class="rssi-unit font-mono">dBm</span>
+        <!-- Transit Mode Segmented Bar -->
+        <div class="setup-row setup-row-mode">
+          <span class="label-clean">โหมดเดินทาง</span>
+          <div class="segmented-control">
+            <button type="button" class="mode-chip active" data-mode="walk" id="mode-walk-btn">
+              <span>🚶 เดิน</span>
+            </button>
+            <button type="button" class="mode-chip" data-mode="bike" id="mode-bike-btn">
+              <span>🚲 ปั่น</span>
+            </button>
+            <button type="button" class="mode-chip" data-mode="moto" id="mode-moto-btn">
+              <span>🛵 มอไซค์</span>
+            </button>
+            <button type="button" class="mode-chip" data-mode="car" id="mode-car-btn">
+              <span>🚗 รถ</span>
+            </button>
           </div>
-          <div class="rssi-status-tag" id="signal-level-tag">รอสัญญาณ</div>
         </div>
 
-        <!-- Clean Text Telemetry Table -->
-        <div class="telemetry-text-list">
-          <div class="telemetry-row">
-            <span class="t-label">Wi-Fi (SSID)</span>
-            <span class="t-value font-mono" id="current-ssid">--</span>
+        <!-- Optional Location Note -->
+        <div class="setup-row setup-row-note">
+          <label for="trip-note-input" class="label-clean">รายละเอียดสถานที่ / บันทึก</label>
+          <input type="text" id="trip-note-input" class="input-clean" placeholder="เช่น อาคารวิศวะ ชั้น 3, โซนโรงอาหาร (ไม่บังคับ)" autocomplete="off">
+        </div>
+      </section>
+
+      <!-- LIVE TELEMETRY SPEC SHEET -->
+      <section class="card-clean card-specs">
+        <div class="specs-header">
+          <span class="specs-title">รายละเอียดข้อมูล</span>
+          <span class="specs-mode-tag font-mono">ECO &bull; NO MAP</span>
+        </div>
+
+        <div class="specs-list">
+          <div class="specs-item">
+            <span class="item-name">Wi-Fi (SSID)</span>
+            <span class="item-val font-mono" id="current-ssid">--</span>
           </div>
-          <div class="telemetry-row">
-            <span class="t-label">MAC (BSSID)</span>
-            <span class="t-value font-mono" id="current-bssid">--</span>
+          <div class="specs-item">
+            <span class="item-name">MAC (BSSID)</span>
+            <span class="item-val font-mono" id="current-bssid">--</span>
           </div>
-          <div class="telemetry-row">
-            <span class="t-label">พิกัด GPS</span>
-            <span class="t-value font-mono" id="gps-coords">-- , --</span>
+          <div class="specs-item">
+            <span class="item-name">พิกัด GPS</span>
+            <span class="item-val font-mono" id="gps-coords">-- , --</span>
           </div>
-          <div class="telemetry-row">
-            <span class="t-label">ความเร็ว / แม่นยำ</span>
-            <span class="t-value font-mono" id="gps-speed">0.0 km/h (±--m)</span>
+          <div class="specs-item">
+            <span class="item-name">ความเร็ว / ความแม่นยำ</span>
+            <span class="item-val font-mono" id="gps-speed">0.0 km/h (±--m)</span>
           </div>
-          <div class="telemetry-row">
-            <span class="t-label">ค่าเฉลี่ย RSSI</span>
-            <span class="t-value font-mono" id="avg-rssi">-- dBm</span>
-          </div>
-          <div class="telemetry-row">
-            <span class="t-label">โหมดเน็ต</span>
-            <span class="t-value font-mono t-eco">⚡ ประหยัดเน็ต 100% (No Map)</span>
+          <div class="specs-item">
+            <span class="item-name">RSSI เฉลี่ย</span>
+            <span class="item-val font-mono" id="avg-rssi">-- dBm</span>
           </div>
         </div>
       </section>
 
-      <!-- CARD 5: Quick Mobile Action Toolbar -->
-      <section class="mobile-actions-grid">
-        <button type="button" class="btn-quick btn-quick-drive" id="btn-sync-gdrive">
-          <span class="icon">☁️</span>
-          <span>ซิงค์เข้า Drive</span>
+      <!-- CLEAN TOOLBAR -->
+      <section class="toolbar-clean-grid">
+        <button type="button" class="btn-tool" id="btn-sync-gdrive">
+          <span class="tool-icon">☁️</span>
+          <span>ซิงค์ Drive</span>
         </button>
-        <button type="button" class="btn-quick btn-quick-csv" id="btn-export-csv">
-          <span class="icon">📥</span>
-          <span>โหลดไฟล์ CSV</span>
+        <button type="button" class="btn-tool" id="btn-export-csv">
+          <span class="tool-icon">📥</span>
+          <span>โหลด CSV</span>
         </button>
-        <button type="button" class="btn-quick btn-quick-test" id="btn-simulate-ping">
-          <span class="icon">🧪</span>
-          <span>ทดสอบสัญญาณ</span>
+        <button type="button" class="btn-tool" id="btn-simulate-ping">
+          <span class="tool-icon">🧪</span>
+          <span>ทดสอบ</span>
         </button>
-        <button type="button" class="btn-quick btn-quick-clear" id="btn-clear-data">
-          <span class="icon">🗑️</span>
+        <button type="button" class="btn-tool" id="btn-clear-data">
+          <span class="tool-icon">🗑️</span>
           <span>ล้างข้อมูล</span>
         </button>
       </section>
 
-      <!-- ACCORDION 1: 1-Tap Bridge Helper (iOS / Android) -->
-      <details class="mobile-accordion helper-accordion" id="helper-accordion" open>
-        <summary class="accordion-header">
-          <span>📲 ตัวช่วยส่งสัญญาณ Wi-Fi (Bridge)</span>
-          <span class="accordion-arrow">▾</span>
+      <!-- COLLAPSIBLE ACCORDION 1: Bridge Setup (iOS Shortcut & Android) -->
+      <details class="accordion-minimal" id="helper-accordion">
+        <summary class="accordion-trigger">
+          <span>📲 ตัวช่วยส่งสัญญาณ Wi-Fi (iOS / Android)</span>
+          <span class="accordion-caret">›</span>
         </summary>
-        <div class="accordion-body">
-          <div class="os-detect-info">
-            <span class="os-badge-icon" id="os-icon">📱</span>
-            <div class="os-text-group">
-              <div class="os-detect-title" id="os-title">ตรวจพบอุปกรณ์ของคุณ</div>
-              <div class="os-detect-desc" id="os-desc">แตะดาวน์โหลดเพื่อส่งค่า Wi-Fi RSSI (dBm) เข้าหน้าเว็บ</div>
+        <div class="accordion-content">
+          <div class="bridge-os-detect">
+            <span class="bridge-os-icon" id="os-icon">📱</span>
+            <div class="bridge-os-info">
+              <div class="bridge-os-title" id="os-title">ตรวจพบอุปกรณ์ของคุณ</div>
+              <div class="bridge-os-desc" id="os-desc">ดาวน์โหลดตัวช่วยส่งค่า Wi-Fi เข้าเว็บ</div>
             </div>
           </div>
-          <div class="bridge-btns-row">
-            <a href="/downloads/Send%20Rssi%20Logger%20web.shortcut" class="btn-bridge" id="btn-dl-ios" download>
+
+          <div class="bridge-downloads-row">
+            <a href="/downloads/Send%20Rssi%20Logger%20web.shortcut" class="btn-bridge-download" id="btn-dl-ios" download>
               <span>🍎 โหลด iOS Shortcut</span>
             </a>
-            <a href="/downloads/rssi-logger-android.apk" class="btn-bridge" id="btn-dl-android" download>
+            <a href="/downloads/rssi-logger-android.apk" class="btn-bridge-download" id="btn-dl-android" download>
               <span>🤖 โหลด Android APK</span>
             </a>
           </div>
-          <div class="shortcut-url-box">
-            <span class="url-label">URL สำหรับคำสั่งลัด:</span>
-            <div class="url-copy-row">
-              <code id="server-url-display">...</code>
+
+          <div class="bridge-url-box">
+            <span class="bridge-url-label">URL ปลายทางสำหรับส่งข้อมูล:</span>
+            <div class="bridge-url-row">
+              <code class="font-mono" id="server-url-display">...</code>
               <button type="button" class="btn-copy-sm" id="btn-copy-url">คัดลอก</button>
             </div>
           </div>
-          <div class="ios-install-tip">
-            <div class="tip-alert-box">
-              <span class="tip-alert-badge">🛑 หยุดหน้ารีเฟรชรัวๆ:</span>
-              <span>แตะที่แถบด้านบน (Dynamic Island) หรือเปิดแอปคำสั่งลัด แล้วกด <b>"หยุด" (Stop)</b> ทันที</span>
-            </div>
 
-            <div class="tip-warning-box">
-              <div class="tip-title">⚠️ กฎสำคัญมากในการตั้งค่าคำสั่งลัด iOS:</div>
-              <div class="tip-desc">
-                ในแอปคำสั่งลัด ต้องใช้คำสั่ง <b>"ดึงข้อมูลจาก URL" (Get contents of URL)</b> เท่านั้น<br>
-                <b class="text-danger">❌ ห้ามเลือกคำสั่ง "เปิด URL" (Open URL) เด็ดขาด</b> เพราะจะทำให้ Safari เด้งเปิดหน้าเว็บและรีเฟรชรัวๆ ทุก 1 วินาที
-              </div>
+          <div class="bridge-guide-notes">
+            <div class="note-box note-warning">
+              <b>⚠️ กฎสำคัญใน Shortcut:</b>
+              <span>ต้องใช้คำสั่ง <b>"รับเนื้อหาของ URL" (Get contents of URL)</b> เท่านั้น ห้ามใช้ "เปิด URL" และห้ามเคาะวรรคหลังเครื่องหมาย <code>?</code></span>
             </div>
-
-            <div class="tip-section">
-              <div class="tip-title">💡 วิธีสร้างคำสั่งลัดเองใน 30 วินาที (แนะนำที่สุด):</div>
-              <div class="tip-desc">
-                เปิดแอป <b>"คำสั่งลัด" (Shortcuts)</b> &gt; กด <b>+ (สร้างใหม่)</b> แล้วเพิ่ม 4 คำสั่ง:<br>
-                1. <b>"รับรายละเอียดเครือข่าย Wi-Fi"</b> &gt; ดึง <i>ความแรงสัญญาณ Wi-Fi (RSSI)</i><br>
-                2. <b>"URL"</b> &gt; ใส่: <code>https://rssi-web-logger.vercel.app/api/log?rssi=[RSSI]&participant_id=[ชื่อเครื่อง]</code><br>
-                3. <b>"ดึงข้อมูลจาก URL"</b> (วิธี: GET) &gt; ส่งข้อมูลเงียบๆ หลังบ้าน<br>
-                4. <b>"รอ"</b> 1 วินาที (ใส่ใน <b>"ทำซ้ำ"</b> 300 ครั้ง)
-              </div>
-            </div>
-
-            <div class="tip-section">
-              <div class="tip-title">📂 หากต้องการนำเข้าไฟล์ที่ดาวน์โหลด (แก้เตือน "ไม่สามารถเปิดคำสั่งลัดได้"):</div>
-              <div class="tip-desc">
-                1. เปิดแอป <b>"ไฟล์" (Files)</b> บน iPhone<br>
-                2. ไปที่โฟลเดอร์ <b>"ดาวน์โหลด" (Downloads)</b><br>
-                3. <b>แตะค้าง</b> ที่ไฟล์ <code>Send Rssi Logger web.shortcut</code><br>
-                4. เลือก <b>"แชร์" (Share)</b> &gt; เลือกแอป <b>"คำสั่งลัด" (Shortcuts)</b>
-              </div>
+            <div class="note-box">
+              <b>💡 วิธีแก้เตือน "ไม่สามารถเปิดคำสั่งลัดได้":</b>
+              <span>เปิดแอป <b>"ไฟล์" (Files)</b> &gt; ดาวน์โหลด &gt; แตะค้างที่ไฟล์ &gt; แชร์ &gt; เลือก <b>"คำสั่งลัด"</b></span>
             </div>
           </div>
         </div>
       </details>
 
-      <!-- ACCORDION 2: Cloud & Google Drive Settings -->
-      <details class="mobile-accordion settings-accordion">
-        <summary class="accordion-header">
-          <span>☁️ ตั้งค่า Google Drive Webhook</span>
-          <span class="accordion-arrow">▾</span>
+      <!-- COLLAPSIBLE ACCORDION 2: Cloud Settings -->
+      <details class="accordion-minimal settings-accordion">
+        <summary class="accordion-trigger">
+          <span>⚙️ ตั้งค่า Google Drive Webhook</span>
+          <span class="accordion-caret">›</span>
         </summary>
-        <div class="accordion-body">
-          <div class="gdrive-status-row">
+        <div class="accordion-content">
+          <div class="gdrive-status-line">
             <span class="gdrive-label">สถานะการเชื่อมต่อ:</span>
-            <span class="gdrive-badge-ready" id="gdrive-status-badge">พร้อมใช้งาน 🟢</span>
+            <span class="gdrive-ready-pill" id="gdrive-status-badge">พร้อมใช้งาน 🟢</span>
           </div>
-          <div class="gdrive-field">
-            <label for="gdrive-webhook-input" class="gdrive-input-label">Apps Script Webhook URL:</label>
-            <input type="url" id="gdrive-webhook-input" class="text-input font-mono text-sm" placeholder="https://script.google.com/macros/s/.../exec">
+          <div class="gdrive-field-group">
+            <label for="gdrive-webhook-input" class="gdrive-label">Apps Script Webhook URL:</label>
+            <input type="url" id="gdrive-webhook-input" class="input-clean font-mono text-sm" placeholder="https://script.google.com/macros/s/.../exec">
           </div>
-          <label class="gdrive-chk-label">
+          <label class="gdrive-chk-wrap">
             <input type="checkbox" id="gdrive-autosync-chk" checked>
             <span>ซิงค์ขึ้น Google Drive อัตโนมัติเมื่อกด STOP TRIP</span>
           </label>
@@ -277,9 +235,9 @@
 
     </main>
 
-    <!-- Footer Status -->
-    <footer class="mobile-footer">
-      <span>RSSI Web Logger &bull; Field Research Telemetry Pipeline</span>
+    <!-- Footer -->
+    <footer class="app-footer">
+      <span>RSSI Logger &bull; Minimalist Telemetry Pipeline</span>
     </footer>
 
   </div>
