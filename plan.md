@@ -1,14 +1,13 @@
-# แผนงานระบบ RSSI Web Logger (รองรับทั้ง iOS & Android + Google Drive)
+# แผนงานระบบ RSSI Web Logger (Mobile-First & Cloud Ready)
 
 ## 1. บทนำและสถาปัตยกรรมรวม (Dual-OS Architecture)
-ระบบถูกออกแบบให้ **หน้าเว็บ Dashboard เดียวกันรองรับผู้ใช้ทั้ง iOS และ Android** โดยมีเป้าหมายคือลดขั้นตอนของผู้ใช้ (Frictionless / Minimum Steps) ให้ได้มากที่สุด:
+ระบบถูกออกแบบให้ **หน้าเว็บ Dashboard เดียวกันรองรับผู้ใช้ทั้ง iOS และ Android** โดยมีเป้าหมายคือลดขั้นตอนของผู้ใช้ (Frictionless / Minimum Steps) ให้ได้มากที่สุด พร้อมทั้งประหยัดอินเทอร์เน็ตและพลังงานมือถือสูงสุด (Zero Data Drain):
 * **Hosting & Backend:** Deploy บน **Vercel** (Serverless API Functions: `/api/log`, `/api/logs`, `/api/export`, `/api/sync-drive`)
-* **ฐานข้อมูลคลาวด์ (Google Drive & Sheets):** บันทึกตรงเข้า **Google Drive** ผ่าน Google Apps Script Webhook (อัปเดต Google Sheets แบบ Real-time และสำรองไฟล์ CSV เข้าโฟลเดอร์ Google Drive ทุกทริป)
+* **ฐานข้อมูลคลาวด์ (Google Drive & Sheets):** บันทึกตรงเข้า **Google Drive** อัตโนมัติเมื่อกด STOP TRIP พร้อมแสดงแถบสถานะแจ้งเตือนสด (Live Toast)
+* **รหัสผู้เข้าร่วมถาวร (Hardware-Tied Device ID):** คำนวณจากสเปกฮาร์ดแวร์ประจำเครื่อง รหัสจะไม่เปลี่ยนเองตลอดไป พร้อมบันทึก 3 ชั้น (`localStorage` + `Cookie 10 ปี` + `Hardware Hash Fallback`)
+* **ประหยัดเน็ต 100% (Zero Data Drain):** ถอดแผนที่และกราฟแคนวาสออกทั้งหมด แสดงผลแบบ Text-First Telemetry ทำให้หน้าเว็บเบา โหลดไว ไม่แย่งแบนด์วิดท์กับการยิงพิกัด GPS/Wi-Fi
 * **หน้าจอเปิดค้างอัตโนมัติ (Screen Wake Lock):** ป้องกันหน้าจอดับขณะเดินทางเก็บข้อมูลบนทั้ง iOS Safari และ Android Chrome
-* **พิกัด GPS:** ดึงสดผ่านเว็บเบราว์เซอร์ (`navigator.geolocation`) ทั้งบน iOS (Safari) และ Android (Chrome)
-* **สัญญาณ Wi-Fi (BSSID, SSID, RSSI dBm):** เบราว์เซอร์ถูกบล็อกไม่ให้เข้าถึงฮาร์ดแวร์ Wi-Fi ตามมาตรฐานความปลอดภัย (W3C) จึงใช้ตัวช่วยส่งสัญญาณระดับเบื้องหลังที่มีขั้นตอนติดตั้งสั้นที่สุด:
-  * **iOS (iPhone/iPad):** ใช้แอปที่ติดมากับเครื่อง **Apple Shortcuts** (`Send Rssi Logger web.shortcut`) โหลด 1 คลิก ไม่ต้องติดตั้งแอปเพิ่ม
-  * **Android:** ใช้ **Single-Click Companion APK** (`rssi-logger-android.apk`) ดาวน์โหลดติดตั้งปุ่มเดียว กด START ส่งค่าเข้าเว็บ/Google DB ทันที
+* **ไม่ล้นแนวนอน (Zero Horizontal Overflow):** ออกแบบเลย์เอาต์ขนาดกะทัดรัด (Max 480px) พอดีหน้าจอมือถือทุกรุ่นตั้งแต่ 320px ขึ้นไป
 
 ---
 
@@ -18,16 +17,17 @@
 | :---: | :--- | :---: | :---: |
 | 1 | สร้างโครงสร้างโปรเจกต์ `RSSI Web Logger` บน Desktop | ทั้งหมด | ✅ เสร็จสิ้น |
 | 2 | พัฒนา Backend Server (`server.js`, SSE, REST API, CSV Export) | ทั้งหมด | ✅ เสร็จสิ้น |
-| 3 | พัฒนา Web Dashboard (Map CartoDB, Chart.js, Gauge, Mode Switcher) | ทั้งหมด | ✅ เสร็จสิ้น |
+| 3 | พัฒนา Web Dashboard (Mode Switcher, Telemetry, Controls) | ทั้งหมด | ✅ เสร็จสิ้น |
 | 4 | แปลง Apple Shortcut ต้นแบบเป็น `Send Rssi Logger web.shortcut` | iOS | ✅ เสร็จสิ้น |
-| 5 | ระบบดึงชื่อเครื่อง (Device Name) เป็น `participant_id` อัตโนมัติ | iOS & Web | ✅ เสร็จสิ้น |
+| 5 | ปรับปรุงรหัสผู้เข้าร่วมเป็น Hardware-Tied Device ID ไม่เปลี่ยนเองตลอดกาล | ทั้งหมด | ✅ เสร็จสิ้น |
 | 6 | เพิ่มระบบตรวจสอบระบบปฏิบัติการ (Auto OS Detection) บนหน้าเว็บ | iOS & Android | ✅ เสร็จสิ้น |
 | 7 | เตรียมชุดไฟล์ Bridge สำหรับ Android (`public/downloads/`) | Android | ✅ เสร็จสิ้น |
 | 8 | ปุ่มดาวน์โหลด Bridge แบบ 1-Tap ไฮไลต์ตามอุปกรณ์บน Dashboard | ทั้งหมด | ✅ เสร็จสิ้น |
-| 9 | เชื่อมต่อระบบบันทึกข้อมูลเข้า Google Drive & Google Sheets | Vercel & Cloud | ✅ เสร็จสิ้น |
+| 9 | เชื่อมต่อระบบบันทึกข้อมูลเข้า Google Drive & Google Sheets อัตโนมัติ | Vercel & Cloud | ✅ เสร็จสิ้น |
 | 10 | เพิ่มระบบ Screen Wake Lock ป้องกันจอดับขณะบันทึกข้อมูล | iOS & Android | ✅ เสร็จสิ้น |
-| 11 | การทดสอบ Local/E2E และ Deploy พร้อมใช้งานบน GitHub/Vercel | ทั้งหมด | ✅ เสร็จสิ้น |
-| 12 | ปรับปรุง UX/UI ให้เป็น Mobile-First (Text-First Telemetry, แก้ไขรหัสผู้เข้าร่วมให้คงที่ถาวร) | ทั้งหมด | ✅ เสร็จสิ้น |
+| 11 | ปรับปรุง UX/UI เป็น Mobile-First & Text-First Telemetry (ตัด Map เพื่อประหยัดเน็ต 0 MB) | ทั้งหมด | ✅ เสร็จสิ้น |
+| 12 | แก้ไขเลย์เอาต์หน้าจอไม่ให้ล้นแนวนอน (Zero Horizontal Overflow) 100% | ทั้งหมด | ✅ เสร็จสิ้น |
+| 13 | เพิ่มแถบแจ้งเตือนสถานะการอัปโหลดเข้า Google Drive แบบ Real-Time ทันทีที่กดหยุด | ทั้งหมด | ✅ เสร็จสิ้น |
 
 ---
 
@@ -37,14 +37,13 @@
 
 ---
 
-## 4. สรุปขั้นตอนของผู้ใช้งาน (User Workflow - Minimum Steps)
-* **ฝั่ง iOS:**
-  1. เปิดหน้าเว็บ Dashboard บน Safari
-  2. กดปุ่มดาวน์โหลด iOS Shortcut > กดยอมรับเพิ่มในแอปคำสั่งลัด (ทำครั้งเดียว)
-  3. กด START TRIP บนเว็บ > รัน Shortcut ในพื้นหลัง
-  4. เมื่อจบการเดินทาง กด STOP TRIP ข้อมูลจะ Sync เข้า Google Drive อัตโนมัติ
-* **ฝั่ง Android:**
-  1. เปิดหน้าเว็บ Dashboard บน Chrome
-  2. กดปุ่มดาวน์โหลด Android APK > กดติดตั้ง (ทำครั้งเดียว)
-  3. กด START TRIP บนเว็บ > กด START ในแอป Companion
-  4. เมื่อจบการเดินทาง กด STOP TRIP ข้อมูลจะ Sync เข้า Google Drive อัตโนมัติ
+## 4. สรุปขั้นตอนของผู้ใช้งาน (User Workflow - Ready to Use)
+* **การติดตั้ง (ทำครั้งเดียว):**
+  - **iOS:** โหลดคำสั่งลัดจากหน้าเว็บ > กดเพิ่มใน Shortcuts > อนุญาตสิทธิ์ Location "While Using"
+  - **Android:** โหลดและติดตั้ง Companion APK จากหน้าเว็บ > อนุญาตสิทธิ์ Location
+* **การบันทึกข้อมูล:**
+  1. เปิดหน้าเว็บ > ตรวจสอบรหัสเครื่อง (มีให้ถาวร) > เลือกโหมดเดินทาง
+  2. กดปุ่มใหญ่ **"▶ เริ่มบันทึก (START TRIP)"** (หน้าจอจะล็อกไม่ให้ดับอัตโนมัติ)
+  3. สลับไปเปิดคำสั่งลัด / แอป Companion เพื่อส่งค่า Wi-Fi
+  4. เมื่อถึงปลายทาง กดปุ่ม **"⏹ หยุดบันทึก (STOP TRIP)"**
+  5. ระบบจะขึ้นแถบเขียว `✅ บันทึกเข้า Google Drive สำเร็จแล้ว (X จุด)` ให้อัตโนมัติ
