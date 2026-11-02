@@ -2,7 +2,7 @@ let memoryStore = global._rssiMemoryStore || [];
 global._rssiMemoryStore = memoryStore;
 
 module.exports = (req, res) => {
-  const headers = ['timestamp','participant_id','trip_id','latitude','longitude','accuracy','speed','ssid','bssid','rssi','user_label_mode'];
+  const headers = ['timestamp','participant_id','trip_id','latitude','longitude','accuracy','speed','ssid','bssid','rssi','user_label_mode','note'];
   let csv = headers.join(',') + '\n';
   memoryStore.forEach(row => {
     const line = [
@@ -16,7 +16,8 @@ module.exports = (req, res) => {
       `"${(row.ssid || '').replace(/"/g, '""')}"`,
       row.bssid,
       row.rssi,
-      row.user_label_mode
+      row.user_label_mode || 'walk',
+      `"${(row.note || '').replace(/"/g, '""')}"`
     ];
     csv += line.join(',') + '\n';
   });

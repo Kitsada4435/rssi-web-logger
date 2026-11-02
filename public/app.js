@@ -70,6 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
     timerInterval: null,
     tripId: 'IDLE',
     participantId: initParticipantId(),
+    tripNote: localStorage.getItem('rssi_trip_note') || '',
     gdriveWebhook: localStorage.getItem('rssi_gdrive_webhook') || 'https://script.google.com/macros/s/AKfycbwry_goxlTURpP6xBBi6jvTBfGNrhppeS4xQtPEoBVae52dNa0DnfblQgJDzj-TE_Dr/exec',
     autoSyncGdrive: localStorage.getItem('rssi_autosync_gdrive') !== 'false',
     selectedMode: 'walk',
@@ -102,6 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
     totalSamples: document.getElementById('total-samples'),
     avgRssi: document.getElementById('avg-rssi'),
     participantInput: document.getElementById('participant-id-input'),
+    tripNoteInput: document.getElementById('trip-note-input'),
     idSavedBadge: document.getElementById('id-saved-badge'),
     btnCopyId: document.getElementById('btn-copy-id'),
     btnResetHwId: document.getElementById('btn-reset-hw-id'),
@@ -171,6 +173,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (!entry.trip_id || entry.trip_id === 'TRIP-DEFAULT') {
       entry.trip_id = state.tripId;
+    }
+    if (!entry.note && state.tripNote) {
+      entry.note = state.tripNote;
     }
 
     state.logs.push(entry);
@@ -337,7 +342,8 @@ document.addEventListener('DOMContentLoaded', () => {
       ssid: row.ssid || '',
       bssid: row.bssid || '',
       rssi: row.rssi,
-      user_label_mode: row.user_label_mode || state.selectedMode
+      user_label_mode: row.user_label_mode || state.selectedMode,
+      note: row.note || state.tripNote || ''
     }));
 
     showSyncToast('loading', `กำลังอัปโหลด ${payloadLogs.length} จุดเข้า Google Drive...`);
@@ -440,6 +446,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // 10.5 Note & Location Description Setup
+  if (el.tripNoteInput) {
+    el.tripNoteInput.value = state.tripNote;
+    el.tripNoteInput.addEventListener('input', (e) => {
+      state.tripNote = e.target.value.trim();
+      localStorage.setItem('rssi_trip_note', state.tripNote);
+    });
+  }
+
   // 11. Mode Chips Selection
   el.modeBtns.forEach(btn => {
     btn.addEventListener('click', () => {
@@ -492,7 +507,7 @@ document.addEventListener('DOMContentLoaded', () => {
       alert('ไม่มีข้อมูลในรอบนี้ กรุณากด START TRIP หรือกดทดสอบสัญญาณก่อน');
       return;
     }
-    const headers = ['timestamp','participant_id','trip_id','latitude','longitude','accuracy','speed','ssid','bssid','rssi','user_label_mode'];
+    const headers = ['timestamp','participant_id','trip_id','latitude','longitude','accuracy','speed','ssid','bssid','rssi','user_label_mode','note'];
     let csv = headers.join(',') + '\n';
     state.logs.forEach(row => {
       const line = [
@@ -506,7 +521,8 @@ document.addEventListener('DOMContentLoaded', () => {
         `"${(row.ssid || '').replace(/"/g, '""')}"`,
         row.bssid || '',
         row.rssi,
-        row.user_label_mode || state.selectedMode
+        row.user_label_mode || state.selectedMode,
+        `"${(row.note || state.tripNote || '').replace(/"/g, '""')}"`
       ];
       csv += line.join(',') + '\n';
     });
@@ -533,6 +549,7 @@ document.addEventListener('DOMContentLoaded', () => {
       speed: state.currentLocation ? state.currentLocation.speed : 1.2,
       accuracy: 4,
       mode: state.selectedMode,
+      note: state.tripNote,
       participant_id: state.participantId,
       trip_id: state.tripId
     };

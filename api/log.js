@@ -31,6 +31,7 @@ module.exports = async (req, res) => {
       const mode = query.mode || query.user_label_mode || 'walk';
       const participantId = query.participant_id ? decodeURIComponent(query.participant_id).trim() : 'USR-ANON';
       const tripId = query.trip_id || 'TRIP-DEFAULT';
+      const note = query.note || query.notes || query.location_note || '';
 
       const entry = {
         id: memoryStore.length + 1,
@@ -44,7 +45,8 @@ module.exports = async (req, res) => {
         longitude: lng,
         speed: speed,
         accuracy: accuracy,
-        user_label_mode: mode
+        user_label_mode: mode,
+        note: note
       };
       memoryStore.push(entry);
       if (memoryStore.length > 5000) memoryStore.shift();
@@ -64,6 +66,7 @@ module.exports = async (req, res) => {
   const mode = query.mode || query.user_label_mode || 'walk';
   const participantId = query.participant_id ? decodeURIComponent(query.participant_id).trim() : 'USR-ANON';
   const tripId = query.trip_id || 'TRIP-DEFAULT';
+  const note = query.note || query.notes || query.location_note || '';
 
   const entry = {
     id: memoryStore.length + 1,
@@ -77,7 +80,8 @@ module.exports = async (req, res) => {
     longitude: lng,
     speed: speed,
     accuracy: accuracy,
-    user_label_mode: mode
+    user_label_mode: mode,
+    note: note
   };
 
   memoryStore.push(entry);

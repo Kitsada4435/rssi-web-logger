@@ -40,6 +40,7 @@ app.all('/api/log', (req, res) => {
       const mode = query.mode || query.user_label_mode || 'walk';
       const participantId = query.participant_id ? decodeURIComponent(query.participant_id).trim() : 'USR-ANON';
       const tripId = query.trip_id || 'TRIP-DEFAULT';
+      const note = query.note || query.notes || query.location_note || '';
 
       const entry = {
         id: logs.length + 1,
@@ -53,7 +54,8 @@ app.all('/api/log', (req, res) => {
         longitude: lng,
         speed: speed,
         accuracy: accuracy,
-        user_label_mode: mode
+        user_label_mode: mode,
+        note: note
       };
       logs.push(entry);
       if (logs.length > 10000) logs.shift();
@@ -72,6 +74,7 @@ app.all('/api/log', (req, res) => {
   const mode = query.mode || query.user_label_mode || 'walk';
   const participantId = query.participant_id ? decodeURIComponent(query.participant_id).trim() : 'USR-ANON';
   const tripId = query.trip_id || 'TRIP-DEFAULT';
+  const note = query.note || query.notes || query.location_note || '';
 
   const entry = {
     id: logs.length + 1,
@@ -85,7 +88,8 @@ app.all('/api/log', (req, res) => {
     longitude: lng,
     speed: speed,
     accuracy: accuracy,
-    user_label_mode: mode
+    user_label_mode: mode,
+    note: note
   };
 
   logs.push(entry);
@@ -113,7 +117,7 @@ app.all('/api/log', (req, res) => {
 const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbwry_goxlTURpP6xBBi6jvTBfGNrhppeS4xQtPEoBVae52dNa0DnfblQgJDzj-TE_Dr/exec';
 
 function generateCsvString(items, participantId, tripId) {
-  const headers = ['timestamp','participant_id','trip_id','latitude','longitude','accuracy','speed','ssid','bssid','rssi','user_label_mode'];
+  const headers = ['timestamp','participant_id','trip_id','latitude','longitude','accuracy','speed','ssid','bssid','rssi','user_label_mode','note'];
   let csv = headers.join(',') + '\n';
   items.forEach(row => {
     const line = [
@@ -127,7 +131,8 @@ function generateCsvString(items, participantId, tripId) {
       `"${(row.ssid || '').replace(/"/g, '""')}"`,
       row.bssid || '',
       row.rssi !== null && row.rssi !== undefined ? row.rssi : '',
-      row.user_label_mode || 'walk'
+      row.user_label_mode || 'walk',
+      `"${(row.note || '').replace(/"/g, '""')}"`
     ];
     csv += line.join(',') + '\n';
   });

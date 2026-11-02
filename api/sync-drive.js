@@ -1,7 +1,7 @@
 const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbwry_goxlTURpP6xBBi6jvTBfGNrhppeS4xQtPEoBVae52dNa0DnfblQgJDzj-TE_Dr/exec';
 
 function generateCsvString(logs, participantId, tripId) {
-  const headers = ['timestamp','participant_id','trip_id','latitude','longitude','accuracy','speed','ssid','bssid','rssi','user_label_mode'];
+  const headers = ['timestamp','participant_id','trip_id','latitude','longitude','accuracy','speed','ssid','bssid','rssi','user_label_mode','note'];
   let csv = headers.join(',') + '\n';
   logs.forEach(row => {
     const line = [
@@ -15,7 +15,8 @@ function generateCsvString(logs, participantId, tripId) {
       `"${(row.ssid || '').replace(/"/g, '""')}"`,
       row.bssid || '',
       row.rssi !== null && row.rssi !== undefined ? row.rssi : '',
-      row.user_label_mode || 'walk'
+      row.user_label_mode || 'walk',
+      `"${(row.note || '').replace(/"/g, '""')}"`
     ];
     csv += line.join(',') + '\n';
   });

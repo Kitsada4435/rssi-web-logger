@@ -342,6 +342,15 @@ body {
   line-height: 1.35;
 }
 
+.optional-badge {
+  font-size: 0.64rem;
+  color: var(--text-dim);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+}
+
 /* CARD 2: Transit Mode Selector */
 .mode-card .card-label {
   margin-bottom: 6px;
