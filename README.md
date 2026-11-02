@@ -1,6 +1,6 @@
-# RSSI Web Logger: Mobile-First Wi-Fi & GPS Telemetry System
+# RSSI Web Logger: Minimalist Wi-Fi & GPS Telemetry System
 
-A lightweight, mobile-first Web Application + Mobile Bridge pipeline for collecting synchronized Wi-Fi RSSI (dBm), MAC/BSSID, SSID, and High-Precision GPS metrics directly on **iOS (iOS 17+)** and **Android**, with automated deployment on **Vercel** and automatic cloud synchronization to **Google Drive & Google Sheets**.
+A lightweight, mobile-first Web Application + Mobile Bridge pipeline for collecting synchronized Wi-Fi RSSI (dBm), MAC/BSSID, SSID, High-Precision GPS metrics, and research location notes directly on **iOS (iOS 17+)** and **Android**, with automated deployment on **Vercel** and automatic cloud synchronization to **Google Drive & Google Sheets**.
 
 [ภาษาไทย (Thai Guide) คลิกที่นี่](#คู่มือการใช้งานภาษาไทย)
 
@@ -8,12 +8,14 @@ A lightweight, mobile-first Web Application + Mobile Bridge pipeline for collect
 
 ## Architecture Overview
 
-1. **Vercel Cloud Deployment (`/api/*`):** Serverless architecture hosting the Web Dashboard and receiving telemetry streams (`/api/log`, `/api/sync-drive`, `/api/export`).
-2. **Automatic Google Drive Sync:** Direct synchronization via Google Apps Script upon stopping a trip, backed by live on-screen toast feedback and automatic trip CSV archiving.
-3. **Hardware-Tied Device ID:** Deterministic device fingerprinting ensuring the participant code never changes on the same smartphone.
-4. **Text-First & Zero Data Drain:** Stripped heavy map tile and canvas chart rendering to save cellular data (0 MB consumed on maps), prevent CPU thermal throttling, and ensure 100% precision.
-5. **Zero Horizontal Overflow:** Mobile-first layout (max 480px) tailored for standard mobile viewports (320px–430px) without horizontal scrolling.
-6. **Screen Keep-Awake:** Screen Wake Lock API prevents the phone display from sleeping during active field trips.
+1. **Vercel Cloud Deployment (`/api/*`):** Unified Serverless architecture hosting the Web Dashboard and processing telemetry streams (`/api/log`, `/api/sync-drive`, `/api/export`).
+2. **Minimalist OLED Dark UI:** Pure black (`#000000`) theme with crisp hairline borders, high-contrast typography, and zero clutter designed for field researchers.
+3. **Automatic Google Drive Sync:** Direct synchronization via Google Apps Script upon stopping a trip, backed by live on-screen toast feedback and automatic trip CSV archiving into Google Drive (`dataset/ios`, `dataset/android`, `dataset/web`).
+4. **Hardware-Tied Device ID:** Deterministic device fingerprinting ensuring the participant code never changes on the same smartphone.
+5. **Location & Research Notes:** Optional on-screen input for specifying building, floor, room, or zone notes seamlessly tagged to every telemetry row.
+6. **Text-First & Zero Data Drain:** Stripped heavy map tile and canvas chart rendering to save cellular data (0 MB consumed on maps), prevent CPU thermal throttling, and ensure 100% precision.
+7. **Zero Horizontal Overflow:** Mobile-first layout (max 440px) tailored for standard mobile viewports (320px–430px) without horizontal scrolling.
+8. **Screen Keep-Awake:** Screen Wake Lock API prevents the phone display from sleeping during active field trips.
 
 ---
 
@@ -46,10 +48,11 @@ http://localhost:3000
 ### 1. วิธีติดตั้งฝั่งมือถือ (ทำครั้งเดียว)
 
 #### สำหรับ iPhone / iPad (iOS 17+)
-1. เปิดหน้าเว็บ Dashboard บน Safari
-2. กดปุ่ม **"🍎 โหลด iOS Shortcut"** บนแถบตรวจจับอุปกรณ์
-3. แตะ **"เพิ่มคำสั่งลัด" (Add Shortcut)** ในแอปคำสั่งลัด
+1. เปิดหน้าเว็บ Dashboard บน Safari: `https://rssi-web-logger.vercel.app`
+2. กดดาวน์โหลดคำสั่งลัดจากแถบตัวช่วยส่งสัญญาณ (หรือสร้างเอง 4 บล็อกในแอป Shortcuts)
+3. ตรวจสอบใน Shortcut: ใช้คำสั่ง **"รับเนื้อหาของ URL" (Get contents of URL)** แบบ `GET` และไม่มีเว้นวรรคหลังเครื่องหมาย `?`
 4. ตั้งค่าสิทธิ์: `Settings` > `Privacy & Security` > `Location Services` > `Shortcuts` > เลือก **"While Using the App"**
+5. ในหน้าแก้ไข Shortcut แตะปุ่ม `(i)` ด้านล่าง > แท็บ **ความเป็นส่วนตัว (Privacy)** > เลือก **"อนุญาตเสมอ" (Always Allow)**
 
 #### สำหรับ Android
 1. เปิดหน้าเว็บ Dashboard บน Chrome
@@ -62,13 +65,14 @@ http://localhost:3000
 
 1. เปิดหน้าเว็บ Dashboard บนเบราว์เซอร์
 2. ตรวจสอบรหัสผู้เข้าร่วม (ระบบผูกรหัสฮาร์ดแวร์ประจำเครื่องถาวร หรือพิมพ์รหัสนักศึกษาของตนเองได้)
-3. เลือกโหมดการเดินทาง (**🚶 เดิน / 🚲 จักรยาน / 🛵 มอเตอร์ไซค์ / 🚗 รถยนต์**)
-4. กดปุ่มใหญ่ **"▶ เริ่มบันทึก (START TRIP)"** (หน้าจอจะล็อกไม่ให้ดับอัตโนมัติ)
-5. เริ่มตัวส่งสัญญาณ Wi-Fi:
-   * **iOS:** สลับไปแอปคำสั่งลัดแล้วกดรัน **"Send Rssi Logger web"**
+3. เลือกโหมดการเดินทาง (**เดิน 🚶 / ปั่น 🚲 / มอไซค์ 🛵 / รถ 🚗**)
+4. *(ไม่บังคับ)* ระบุรายละเอียดสถานที่ เช่น `อาคารวิศวะ ชั้น 3`
+5. กดปุ่มใหญ่ **"เริ่มบันทึก (START TRIP)"** (หน้าจอจะล็อกไม่ให้ดับอัตโนมัติ)
+6. เริ่มตัวส่งสัญญาณ Wi-Fi:
+   * **iOS:** สลับไปแอปคำสั่งลัดแล้วกดปุ่ม Play (▶) รัน **"Send RSSI Web"**
    * **Android:** เปิดแอป Companion แล้วกดปุ่ม **"START"**
-6. ข้อมูล GPS + Wi-Fi RSSI จะแสดงผลสดบนหน้าจอแบบตัวเลขความคมชัดสูง
-7. เมื่อเสร็จสิ้น กด **"⏹ หยุดบันทึก (STOP TRIP)"** 
+7. ข้อมูล GPS + Wi-Fi RSSI จะแสดงผลสดบนหน้าจอแบบตัวเลขความคมชัดสูง
+8. เมื่อเสร็จสิ้น กด **"หยุดบันทึก (STOP TRIP)"** 
    - ระบบจะส่งข้อมูลขึ้น **Google Drive ให้อัตโนมัติทันที** พร้อมขึ้นแถบแจ้งเตือนสีเขียว `✅ บันทึกเข้า Google Drive สำเร็จแล้ว (X จุด)`
    - สามารถกดปุ่ม **"📥 โหลดไฟล์ CSV"** เพื่อบันทึกสำรองในเครื่องได้ตลอดเวลา
 
@@ -80,20 +84,20 @@ http://localhost:3000
 RSSI Web Logger/
 ├── plan.md                              # แผนงานและสถาปัตยกรรมระบบ
 ├── README.md                            # คู่มือการติดตั้งและใช้งาน (TH/EN)
-├── NEXT_STEPS.md                        # สรุปขั้นตอนการทดสอบและ Deploy
+├── NEXT_STEPS.md                        # สรุปขั้นตอนการทดสอบและจัดระเบียบ Drive
 ├── package.json                         # Node.js dependencies & scripts
 ├── server.js                            # Local Express API Server + SSE + Google Drive proxy
 ├── vercel.json                          # คอนฟิก Serverless Functions บน Vercel
 ├── Send Rssi Logger web.shortcut        # ไฟล์ Shortcut สำหรับ iOS
 ├── api/                                 # Serverless endpoints สำหรับ Vercel
-│   ├── log.js                           # รับข้อมูลสัญญาณ Wi-Fi & GPS + ส่งต่อไป Google Drive
+│   ├── log.js                           # รวมศูนย์รับข้อมูล telemetry & ส่งต่อไป Google Drive
 │   ├── sync-drive.js                    # ส่งข้อมูลแบบ Batch ขึ้น Google Drive / Google Sheets
-│   ├── logs.js                          # ดึงประวัติข้อมูล telemetry
+│   ├── logs.js                          # Proxy endpoint สำหรับ backward compatibility
 │   └── export.js                        # ส่งออกข้อมูล CSV
-├── public/                              # หน้าเว็บ Mobile-First Dashboard
-│   ├── index.html                       # หน้าเว็บแบบ Text-First Telemetry
-│   ├── style.css                        # ธีม Mobile-First Zero-Overflow
-│   ├── app.js                           # ลอจิก Hardware ID, GPS, Auto-Sync Google Drive
+├── public/                              # หน้าเว็บ Minimalist Mobile Dashboard
+│   ├── index.html                       # หน้าเว็บแบบ Minimalist Text-First Telemetry
+│   ├── style.css                        # ธีม Minimalist OLED Dark Zero-Overflow
+│   ├── app.js                           # ลอจิก Hardware ID, Polling Engine, Auto-Sync Drive
 │   └── downloads/                       # ไฟล์ Bridge สำหรับผู้ใช้ดาวน์โหลด
 │       ├── Send Rssi Logger web.shortcut
 │       ├── rssi-logger-android.apk
