@@ -114,6 +114,17 @@
   - [x] **Editable USER ID Field:** ปลดล็อค TextField บนหน้า Dashboard ให้ผู้ใช้สามารถตรวจสอบและพิมพ์แก้ไขรหัสเดิมได้เอง เพื่อความยืดหยุ่นกรณีสลับเครื่อง หรือต้องการใช้รหัสนักศึกษา
   - [x] **iOS Certificate Revocation Safeguards:** วิเคราะห์ปัญหาใบรับรอง Scarlet ถูก Apple สั่งระงับ (Revoke) และกำหนดแนวทางแก้ไขแบบติดตั้งทับโดยไม่ลบแอป หรือเปลี่ยนมาใช้ Sideloadly ร่วมกับ Personal Apple ID เพื่อเสถียรภาพสูงสุด
 
+- **Sprint 9: สถาปัตยกรรม Web Dashboard, ระบบจับคู่ Serverless Pairing และ Pure DriveApp (เสร็จสมบูรณ์ พ.ย. 2026)**
+  - [x] **Web Dashboard Deployment (Vercel):** สร้างและเปิดใช้งานหน้าเว็บแดชบอร์ดหลักที่ `https://rssi-web-logger.vercel.app` เพื่อรองรับผู้ใช้อุปกรณ์ iOS ผ่านเบราว์เซอร์ Safari ร่วมกับ Apple Shortcuts
+  - [x] **Multi-User Isolated Ingestion (`/api/log`):** ออกแบบระบบ Serverless Ingestion แยกสตรีมข้อมูลตามรหัสนักศึกษา/อุปกรณ์ ป้องกันข้อมูลสับสนระหว่างเครื่อง
+  - [x] **Pure DriveApp Edition (Google Apps Script):** ปรับปรุงสคริปต์ Webhook บน Google Apps Script ให้ใช้คลาส `DriveApp` ล้วนสำหรับรับทั้งไฟล์ CSV และ ZIP โดยไม่ติดปัญหา Scope การสร้างสเปรดชีต
+  - [x] **Unified 18-Column Schema:** รวมโครงสร้างข้อมูลของทั้ง Android APK และ iOS Web Dashboard ให้ตรงกันแบบ 100% Zero-Missing Parity
+
+- **Sprint 10: First-Time UserID Onboarding, Red/Green Validation และ iOS Kinematic Speed (เสร็จสมบูรณ์ พ.ย. 2026)**
+  - [x] **First-Time UserID Onboarding Modal:** สร้างหน้าต่าง Dialog/Modal ป๊อปอัปให้ผู้ใช้กรอกรหัสนักศึกษา (UserID) ตั้งแต่เข้าใช้งานครั้งแรก ทั้งบนแอปพลิเคชัน Android และหน้าเว็บแดชบอร์ด โดยบันทึกจำไว้ถาวรตลอดไป
+  - [x] **Dynamic Red/Green Validation:** ช่องกรอก UserID แสดงสถานะเป็นสีแดงเมื่อยังไม่ระบุ/ไม่ถูกต้อง และเปลี่ยนเป็นสีเขียวทันทีเมื่อกรอกรหัสนักศึกษาถูกต้อง
+  - [x] **iOS Kinematic Speed Calculation:** พัฒนาระบบคำนวณความเร็วการเคลื่อนที่แบบ Kinematic ด้วยสูตร Haversine ($\Delta d / \Delta t$) บนหน้าเว็บแดชบอร์ด เพื่อแก้ปัญหา Mobile Safari คืนค่า `pos.coords.speed` เป็น 0 เมื่อเดินหรือเคลื่อนที่ช้า ทำให้บันทึกความเร็วในการเดินจริงได้อย่างแม่นยำ
+
 ---
 
 ## 8. บันทึกข้อค้นพบและบทเรียนจากการพัฒนาจริง (Key Insights & Technical Findings)
@@ -176,7 +187,7 @@
 **Remark (Cloud Storage & Sync Architecture): Google Drive + GAS**
 ระบบท่อส่งข้อมูลใช้ **Google Drive + Google Apps Script (GAS)** ฟรี 100% (ไม่ต้องผูกบัตรเครดิต)
 - **Google Drive Folder ID:** `1DtbWXEuofNvZINSBrmXzn5CnXdzPzjFQ`
-- **GAS Web App URL เริ่มต้น:** `https://script.google.com/macros/s/AKfycbwry_goxlTURpP6xBBi6jvTBfGNrhppeS4xQtPEoBVae52dNa0DnfblQgJDzj-TE_Dr/exec`
+- **GAS Web App URL (Production DriveApp Edition):** `https://script.google.com/macros/s/AKfycbzvkcibz8OjhTj8pgQE2BhkNy3S6cSEt9OlDFdfJ261-CFzpHX6pSU66IeEtqkh9Q7e/exec`
 
 1. **โครงสร้างโฟลเดอร์สำหรับงานวิจัย:**
    - โครงสร้าง: `dataset / {Platform} / {DeviceModel} / {ParticipantID} / rssi_trip_{timestamp}.csv.zip`
