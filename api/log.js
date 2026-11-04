@@ -104,7 +104,6 @@ function recordTelemetry(query, req) {
 
   // Timing
   const tUtcMs = query.t_utc_ms ? parseInt(query.t_utc_ms, 10) : Date.now();
-  const tMonoNs = query.t_mono_ns ? parseInt(query.t_mono_ns, 10) : (tUtcMs % 10000000000) * 1000;
 
   // Platform & Hardware metadata detection
   const userAgent = (req && req.headers && req.headers['user-agent']) || '';
@@ -113,35 +112,9 @@ function recordTelemetry(query, req) {
 
   const platform = query.platform || (isIos ? 'ios' : (isAndroid ? 'android' : 'web'));
   const deviceModel = query.device_model || query.devicemodel || (isIos ? 'Apple iPhone' : (isAndroid ? 'Android Device' : 'Generic Device'));
-  const osVersion = query.os_version || query.osversion || (isIos ? 'iOS 18.1' : (isAndroid ? 'Android' : 'Web'));
-
-  // Kinematics & Orientation (Altitude, Heading, Attitude)
-  const rawAlt = query.altitude !== undefined ? query.altitude : query.alt;
-  const altitude = rawAlt !== undefined && rawAlt !== '' ? parseFloat(rawAlt) : (lat !== null ? 312.0 : 0.0);
-
-  const rawHeading = query.heading !== undefined ? query.heading : query.bearing;
-  const heading = rawHeading !== undefined && rawHeading !== '' ? parseFloat(rawHeading) : 0.0;
-
-  let attitude = query.attitude || '';
-  if (!attitude && (query.pitch !== undefined || query.roll !== undefined)) {
-    attitude = `P:${query.pitch || 0}° / R:${query.roll || 0}°`;
-  }
-  if (!attitude) attitude = 'P:0° / R:0°';
-
-  // Raw IMU 6-axis (Accelerometer + Gyroscope)
-  const accelX = query.accel_x !== undefined && query.accel_x !== '' ? parseFloat(query.accel_x) : 0.0;
-  const accelY = query.accel_y !== undefined && query.accel_y !== '' ? parseFloat(query.accel_y) : 0.0;
-  const accelZ = query.accel_z !== undefined && query.accel_z !== '' ? parseFloat(query.accel_z) : 9.8;
-
-  const gyroX = query.gyro_x !== undefined && query.gyro_x !== '' ? parseFloat(query.gyro_x) : 0.0;
-  const gyroY = query.gyro_y !== undefined && query.gyro_y !== '' ? parseFloat(query.gyro_y) : 0.0;
-  const gyroZ = query.gyro_z !== undefined && query.gyro_z !== '' ? parseFloat(query.gyro_z) : 0.0;
 
   // Phone Position
   const phonePosition = query.phone_position || 'pocket';
-
-  // RSSI source
-  const rssiSource = query.rssi_source || (platform === 'android' ? 'wifimanager' : (platform === 'ios' ? 'apple_shortcut' : 'web_telemetry'));
 
   // Predicted Motion Mode (Activity recognition from mobile or speed heuristic)
   let predictedMode = query.activity_recognition_mode || query.predicted_mode || query.activity || query.motion || null;
@@ -155,39 +128,26 @@ function recordTelemetry(query, req) {
   const entry = {
     id: memoryStore.length + 1,
     t_utc_ms: tUtcMs,
-    t_mono_ns: tMonoNs,
     timestamp: new Date(tUtcMs).toISOString(),
     session_id: tripId,
-    trip_id: tripId,
     participant_id: participantId,
     platform: platform,
     device_model: deviceModel,
-    os_version: osVersion,
     lat: lat,
     lon: lon,
-    latitude: lat,
-    longitude: lon,
-    altitude: altitude,
-    heading: heading,
     speed: speed,
     accuracy: accuracy,
-    accel_x: accelX,
-    accel_y: accelY,
-    accel_z: accelZ,
-    gyro_x: gyroX,
-    gyro_y: gyroY,
-    gyro_z: gyroZ,
-    attitude: attitude,
     bssid: bssid,
     ssid: ssid,
     rssi_raw: rssi,
-    rssi: Math.round(rssi),
-    rssi_source: rssiSource,
     user_label_mode: mode,
     activity_recognition_mode: predictedMode,
-    predicted_mode: predictedMode,
     phone_position: phonePosition,
-    note: note
+    note: note,
+    trip_id: tripId,
+    latitude: lat,
+    longitude: lon,
+    rssi: Math.round(rssi)
   };
 
   memoryStore.push(entry);

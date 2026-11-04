@@ -155,39 +155,27 @@ flowchart LR
 
 ## 5. โครงสร้างข้อมูล (Data Schema Specification)
 
-ไฟล์ CSV ทุกไฟล์ที่ดาวน์โหลดจากระบบ หรือถูกอัปโหลดขึ้น Google Drive ใช้โครงสร้างมาตรฐานร่วม (Unified Master Schema) 29 คอลัมน์ที่รองรับทั้ง Web Dashboard, iOS Shortcut และ Android Companion App อย่างสมบูรณ์:
+ไฟล์ CSV ทุกไฟล์ที่ดาวน์โหลดจากระบบ หรือถูกอัปโหลดขึ้น Google Drive ใช้โครงสร้างมาตรฐานร่วม (Core Research Schema) 17 คอลัมน์ที่เน้นเฉพาะข้อมูลสำคัญสำหรับการวิจัย Wi-Fi RSSI Indoor Localization และ Activity Recognition:
 
 | ลำดับ | ชื่อคอลัมน์ (Column) | ประเภทข้อมูล | ตัวอย่างข้อมูล | คำอธิบาย |
 | :---: | :--- | :---: | :--- | :--- |
 | 1 | `t_utc_ms` | Integer (Epoch ms) | `1793766101811` | เวลา Unix Epoch มิลลิวินาทีสำหรับ Synchronize ข้อมูล |
-| 2 | `t_mono_ns` | Integer (Monotonic ns) | `306364989625` | เวลา Monotonic ระดับนาโนวินาทีจากเซนเซอร์ฮาร์ดแวร์ |
-| 3 | `timestamp` | ISO 8601 String | `2026-11-04T11:21:41.811Z` | วันและเวลามาตรฐานสากล |
-| 4 | `session_id` | String | `TRIP-20261104-A9F2` | รหัสรอบการเก็บข้อมูล (Trip / Session ID) |
-| 5 | `participant_id` | String | `680631034` หรือ `IOS-7A2B` | รหัสผู้สำรวจหรือรหัสฮาร์ดแวร์ประจำเครื่อง |
-| 6 | `platform` | String | `android`, `ios`, `web` | ระบบปฏิบัติการของอุปกรณ์ |
-| 7 | `device_model` | String | `samsung SM-S948B`, `iPhone` | รุ่นของฮาร์ดแวร์โทรศัพท์ |
-| 8 | `os_version` | String | `Android 17`, `iOS 18.1` | เวอร์ชันระบบปฏิบัติการ |
-| 9 | `lat` | Float | `18.7954698` | ละติจูดพิกัดดาวเทียม GPS |
-| 10 | `lon` | Float | `98.9528959` | ลองจิจูดพิกัดดาวเทียม GPS |
-| 11 | `altitude` | Float (เมตร) | `312.4` | ความสูงจากระดับน้ำทะเล (GPS Altitude) |
-| 12 | `heading` | Float (องศา) | `185.0` | ทิศทางองศาเข็มทิศ (0-360 องศา จาก True North) |
-| 13 | `speed` | Float | `0.0997` (m/s) หรือ `1.4` | ความเร็วในการเคลื่อนที่ |
-| 14 | `accuracy` | Float (เมตร) | `7.98` | รัศมีความคลาดเคลื่อนของ GPS (ยิ่งน้อยยิ่งแม่นยำ) |
-| 15 | `accel_x` | Float (m/s²) | `-1.1198` | ความเร่งแกน X (Accelerometer รวมแรงโน้มถ่วง) |
-| 16 | `accel_y` | Float (m/s²) | `3.3403` | ความเร่งแกน Y (Accelerometer รวมแรงโน้มถ่วง) |
-| 17 | `accel_z` | Float (m/s²) | `9.8751` | ความเร่งแกน Z (Accelerometer รวมแรงโน้มถ่วง) |
-| 18 | `gyro_x` | Float (rad/s) | `0.0629` | อัตราการหมุนรอบแกน X (Gyroscope) |
-| 19 | `gyro_y` | Float (rad/s) | `-0.2061` | อัตราการหมุนรอบแกน Y (Gyroscope) |
-| 20 | `gyro_z` | Float (rad/s) | `0.0355` | อัตราการหมุนรอบแกน Z (Gyroscope) |
-| 21 | `attitude` | String | `P:12° / R:-4°` | มุมเอียงของตัวเครื่อง (Pitch / Roll) |
-| 22 | `bssid` | String | `04:5f:b9:e4:f1:4a` | MAC Address ของ Wi-Fi Access Point |
-| 23 | `ssid` | String | `@JumboPlus5GHz` | ชื่อเครือข่าย Wi-Fi |
-| 24 | `rssi_raw` | Float (dBm) | `-40.0` | ค่าความแรงสัญญาณดิบ Wi-Fi RSSI |
-| 25 | `rssi_source` | String | `wifimanager`, `apple_shortcut` | ไดรเวอร์หรือช่องทางที่ได้ค่า RSSI |
-| 26 | `user_label_mode` | String | `walk`, `bike`, `motorcycle`, `car` | โหมดการเดินทางที่ผู้สำรวจเลือกด้วยตนเอง |
-| 27 | `activity_recognition_mode` | String | `still`, `walk`, `run`, `vehicle` | โหมดการเคลื่อนไหวที่ระบบ OS/เซนเซอร์ตรวจจับอัตโนมัติ |
-| 28 | `phone_position` | String | `pocket`, `hand`, `bag` | ลักษณะการพกพาโทรศัพท์ขณะเก็บข้อมูล |
-| 29 | `note` | String | `อาคารวิศวะ ชั้น 3, โซนแล็บ` | บันทึกช่วยจำสถานที่หรือจุดสังเกตเพิ่มเติม |
+| 2 | `timestamp` | ISO 8601 String | `2026-11-04T11:21:41.811Z` | วันและเวลามาตรฐานสากล UTC |
+| 3 | `session_id` | String | `TRIP-20261104-A9F2` | รหัสรอบการเก็บข้อมูล (Trip / Session ID) |
+| 4 | `participant_id` | String | `680631034` หรือ `IOS-7A2B` | รหัสผู้สำรวจหรือรหัสฮาร์ดแวร์ประจำเครื่อง |
+| 5 | `platform` | String | `android`, `ios`, `web` | ระบบปฏิบัติการของอุปกรณ์ |
+| 6 | `device_model` | String | `samsung SM-S948B`, `iPhone` | รุ่นของฮาร์ดแวร์โทรศัพท์ |
+| 7 | `lat` | Float | `18.7954698` | ละติจูดพิกัดดาวเทียม GPS |
+| 8 | `lon` | Float | `98.9528959` | ลองจิจูดพิกัดดาวเทียม GPS |
+| 9 | `speed` | Float | `0.0997` (m/s) หรือ `1.4` | ความเร็วในการเคลื่อนที่ |
+| 10 | `accuracy` | Float (เมตร) | `7.98` | รัศมีความคลาดเคลื่อนของ GPS (ยิ่งน้อยยิ่งแม่นยำ) |
+| 11 | `bssid` | String | `04:5f:b9:e4:f1:4a` | MAC Address ของ Wi-Fi Access Point |
+| 12 | `ssid` | String | `@JumboPlus5GHz` | ชื่อเครือข่าย Wi-Fi |
+| 13 | `rssi_raw` | Float (dBm) | `-40.0` | ค่าความแรงสัญญาณดิบ Wi-Fi RSSI |
+| 14 | `user_label_mode` | String | `walk`, `bike`, `motorcycle`, `car` | โหมดการเดินทางที่ผู้สำรวจเลือกด้วยตนเอง |
+| 15 | `activity_recognition_mode` | String | `still`, `walk`, `run`, `vehicle` | โหมดการเคลื่อนไหวที่ระบบตรวจจับอัตโนมัติ |
+| 16 | `phone_position` | String | `pocket`, `hand`, `bag` | ลักษณะการพกพาโทรศัพท์ขณะเก็บข้อมูล |
+| 17 | `note` | String | `อาคารวิศวะ ชั้น 3, โซนแล็บ` | บันทึกช่วยจำสถานที่หรือจุดสังเกตเพิ่มเติม |
 
 ---
 
@@ -270,15 +258,10 @@ Handles recording incoming telemetry from mobile clients and polling latest reco
   * `trip_id` / `session_id` (string, optional): Current trip identifier.
   * `lat` / `latitude` (float, optional): Latitude coordinate.
   * `lon` / `longitude` (float, optional): Longitude coordinate.
-  * `altitude` (float, optional): Altitude in meters above sea level.
-  * `heading` (float, optional): Direction in degrees (0-360) from True North.
   * `speed` (float, optional): Moving speed.
   * `accuracy` (float, optional): Horizontal GPS accuracy in meters.
-  * `accel_x`, `accel_y`, `accel_z` (float, optional): 3-axis Accelerometer with gravity (m/s²).
-  * `gyro_x`, `gyro_y`, `gyro_z` (float, optional): 3-axis Gyroscope (rad/s).
-  * `attitude` (string, optional): Orientation string (e.g. `P:12° / R:-4°`).
   * `user_label_mode` (string, optional): Manual transit mode (`walk`, `bike`, `motorcycle`, `car`).
-  * `activity_recognition_mode` (string, optional): Auto-detected motion activity (`still`, `walk`, `run`, `vehicle`).
+  * `activity_recognition_mode` (string, optional): Motion recognition mode (`still`, `walk`, `run`, `vehicle`).
   * `phone_position` (string, optional): Carrying position (`pocket`, `hand`, `bag`).
   * `note` (string, optional): Location description or research note.
 * **Query Parameters (Dashboard Polling):**
@@ -288,7 +271,7 @@ Handles recording incoming telemetry from mobile clients and polling latest reco
 
 #### Sample Ingestion Request:
 ```http
-GET /api/log?bssid=04:5F:B9:E4:F1:4A&ssid=@JumboPlus5GHz&rssi=-40&participant_id=680631034&lat=18.79546&lon=98.95289&altitude=312.4&heading=185&user_label_mode=walk&phone_position=pocket HTTP/1.1
+GET /api/log?bssid=04:5F:B9:E4:F1:4A&ssid=@JumboPlus5GHz&rssi=-40&participant_id=680631034&lat=18.79546&lon=98.95289&user_label_mode=walk&phone_position=pocket HTTP/1.1
 Host: rssi-web-logger.vercel.app
 ```
 
@@ -300,31 +283,18 @@ Host: rssi-web-logger.vercel.app
   "entry": {
     "id": 42,
     "t_utc_ms": 1793766101811,
-    "t_mono_ns": 306364989625,
     "timestamp": "2026-11-04T11:21:41.811Z",
     "session_id": "TRIP-20261104-A9F2",
     "participant_id": "680631034",
     "platform": "android",
     "device_model": "samsung SM-S948B",
-    "os_version": "Android 17",
     "lat": 18.7954698,
     "lon": 98.9528959,
-    "altitude": 312.4,
-    "heading": 185.0,
     "speed": 0.0997,
     "accuracy": 7.98,
-    "accel_x": -1.1198,
-    "accel_y": 3.3403,
-    "accel_z": 9.8751,
-    "gyro_x": 0.0629,
-    "gyro_y": -0.2061,
-    "gyro_z": 0.0355,
-    "attitude": "P:12° / R:-4°",
     "bssid": "04:5f:b9:e4:f1:4a",
     "ssid": "@JumboPlus5GHz",
     "rssi_raw": -40.0,
-    "rssi": -40,
-    "rssi_source": "wifimanager",
     "user_label_mode": "walk",
     "activity_recognition_mode": "still",
     "phone_position": "pocket",
@@ -346,47 +316,35 @@ Triggered automatically when the user taps **STOP TRIP** or manually clicks **Sy
   "webhook_url": "https://script.google.com/macros/s/.../exec",
   "trip_id": "TRIP-20261104-A9F2",
   "participant_id": "680631034",
-  "logs": [ ...array of 29-column telemetry entries... ]
+  "logs": [ ...array of 17-column telemetry entries... ]
 }
 ```
 
 ---
 
-## Data Schema Specification (Unified Master Schema)
+## Data Schema Specification (Core Research Schema)
 
-Every CSV exported locally or uploaded to Google Drive conforms to this 29-column specification:
+Every CSV exported locally or uploaded to Google Drive conforms to this 17-column specification:
 
 | No. | Column Header | Data Type | Sample Value | Description |
 | :---: | :--- | :---: | :--- | :--- |
 | 1 | `t_utc_ms` | Integer (Epoch ms) | `1793766101811` | Unix epoch timestamp in milliseconds |
-| 2 | `t_mono_ns` | Integer (Monotonic ns) | `306364989625` | Monotonic clock timestamp in nanoseconds |
-| 3 | `timestamp` | ISO 8601 String | `2026-11-04T11:21:41.811Z` | UTC timestamp in ISO 8601 format |
-| 4 | `session_id` | String | `TRIP-20261104-A9F2` | Trip / survey session identifier |
-| 5 | `participant_id` | String | `680631034` or `IOS-7A2B` | Permanent hardware ID or user-assigned ID |
-| 6 | `platform` | String | `android`, `ios`, `web` | Operating system platform |
-| 7 | `device_model` | String | `samsung SM-S948B`, `iPhone` | Hardware model string |
-| 8 | `os_version` | String | `Android 17`, `iOS 18.1` | OS version string |
-| 9 | `lat` | Float | `18.7954698` | GPS latitude coordinate |
-| 10 | `lon` | Float | `98.9528959` | GPS longitude coordinate |
-| 11 | `altitude` | Float (m) | `312.4` | Height above sea level from GPS |
-| 12 | `heading` | Float (deg) | `185.0` | Travel heading / compass direction (0-360) |
-| 13 | `speed` | Float | `0.0997` | Speed in m/s or km/h |
-| 14 | `accuracy` | Float (m) | `7.98` | Horizontal GPS accuracy estimate |
-| 15 | `accel_x` | Float (m/s²) | `-1.1198` | 3-axis Accelerometer X (including gravity) |
-| 16 | `accel_y` | Float (m/s²) | `3.3403` | 3-axis Accelerometer Y (including gravity) |
-| 17 | `accel_z` | Float (m/s²) | `9.8751` | 3-axis Accelerometer Z (including gravity) |
-| 18 | `gyro_x` | Float (rad/s) | `0.0629` | 3-axis Gyroscope rotation rate X |
-| 19 | `gyro_y` | Float (rad/s) | `-0.2061` | 3-axis Gyroscope rotation rate Y |
-| 20 | `gyro_z` | Float (rad/s) | `0.0355` | 3-axis Gyroscope rotation rate Z |
-| 21 | `attitude` | String | `P:12° / R:-4°` | Device tilt attitude (Pitch / Roll) |
-| 22 | `bssid` | String | `04:5f:b9:e4:f1:4a` | MAC address of the Wi-Fi Access Point |
-| 23 | `ssid` | String | `@JumboPlus5GHz` | Wi-Fi network SSID |
-| 24 | `rssi_raw` | Float (dBm) | `-40.0` | Raw Wi-Fi received signal strength |
-| 25 | `rssi_source` | String | `wifimanager`, `apple_shortcut` | Wi-Fi driver ingestion source |
-| 26 | `user_label_mode` | String | `walk`, `bike`, `motorcycle`, `car` | User-selected ground truth transit mode |
-| 27 | `activity_recognition_mode` | String | `still`, `walk`, `run`, `vehicle` | Automated motion recognition mode |
-| 28 | `phone_position` | String | `pocket`, `hand`, `bag` | Phone carrying position |
-| 29 | `note` | String | `Engineering Building Floor 3` | Contextual location notes or landmarks |
+| 2 | `timestamp` | ISO 8601 String | `2026-11-04T11:21:41.811Z` | UTC timestamp in ISO 8601 format |
+| 3 | `session_id` | String | `TRIP-20261104-A9F2` | Trip / survey session identifier |
+| 4 | `participant_id` | String | `680631034` or `IOS-7A2B` | Permanent hardware ID or user-assigned ID |
+| 5 | `platform` | String | `android`, `ios`, `web` | Operating system platform |
+| 6 | `device_model` | String | `samsung SM-S948B`, `iPhone` | Hardware model string |
+| 7 | `lat` | Float | `18.7954698` | GPS latitude coordinate |
+| 8 | `lon` | Float | `98.9528959` | GPS longitude coordinate |
+| 9 | `speed` | Float | `0.0997` | Speed in m/s or km/h |
+| 10 | `accuracy` | Float (m) | `7.98` | Horizontal GPS accuracy estimate |
+| 11 | `bssid` | String | `04:5f:b9:e4:f1:4a` | MAC address of the Wi-Fi Access Point |
+| 12 | `ssid` | String | `@JumboPlus5GHz` | Wi-Fi network SSID |
+| 13 | `rssi_raw` | Float (dBm) | `-40.0` | Raw Wi-Fi received signal strength |
+| 14 | `user_label_mode` | String | `walk`, `bike`, `motorcycle`, `car` | User-selected ground truth transit mode |
+| 15 | `activity_recognition_mode` | String | `still`, `walk`, `run`, `vehicle` | Automated motion recognition mode |
+| 16 | `phone_position` | String | `pocket`, `hand`, `bag` | Phone carrying position |
+| 17 | `note` | String | `Engineering Building Floor 3` | Contextual location notes or landmarks |
 
 ---
 
