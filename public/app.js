@@ -199,6 +199,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 5. Ingest Telemetry Entry (Text-First Display)
   function ingestEntry(entry) {
+    // Multi-User Security: Reject packets belonging to another participant
+    if (entry.participant_id && state.participantId) {
+      const entryPid = String(entry.participant_id).toLowerCase().trim();
+      const currentPid = String(state.participantId).toLowerCase().trim();
+      if (entryPid !== currentPid) {
+        return;
+      }
+    }
+
     // Retain client-defined participant ID, never let incoming packets overwrite it
     entry.participant_id = state.participantId || entry.participant_id || 'USR-ANON';
     if (!entry.trip_id || entry.trip_id === 'TRIP-DEFAULT') {
@@ -305,7 +314,7 @@ document.addEventListener('DOMContentLoaded', () => {
     el.connPill.classList.add('recording');
   }
 
-  // 6. Calm Real-Time Telemetry Polling (Zero Screen Flickering, 100% Vercel & Battery Compatible)
+  // 6. Calm Real-Time Telemetry Polling (Strict Multi-User Isolation)
   let lastProcessedId = 0;
   let isPolling = false;
 
@@ -313,7 +322,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (isPolling) return;
     isPolling = true;
     try {
-      const res = await fetch('/api/log?action=get&t=' + Date.now(), { cache: 'no-store' });
+      const pId = encodeURIComponent(state.participantId || '');
+      const url = `/api/log?action=get&participant_id=${pId}&after_id=${lastProcessedId}&t=${Date.now()}`;
+      const res = await fetch(url, { cache: 'no-store' });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
 
@@ -323,15 +334,10 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       if (data && Array.isArray(data.logs)) {
-        if (data.logs.length === 0 && lastProcessedId > 0) {
-          lastProcessedId = 0;
-          resetData();
-        } else {
-          for (const entry of data.logs) {
-            if (entry.id && entry.id > lastProcessedId) {
-              lastProcessedId = entry.id;
-              ingestEntry(entry);
-            }
+        for (const entry of data.logs) {
+          if (entry.id && entry.id > lastProcessedId) {
+            lastProcessedId = entry.id;
+            ingestEntry(entry);
           }
         }
       }
@@ -497,8 +503,14 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // 10. Participant ID Management (Permanent Persistence)
+  function updateServerUrlDisplay() {
+    const url = `${window.location.origin}/api/log?participant_id=${encodeURIComponent(state.participantId)}`;
+    if (el.serverUrlDisplay) el.serverUrlDisplay.textContent = url;
+  }
+
   if (el.participantInput) {
     el.participantInput.value = state.participantId;
+    updateServerUrlDisplay();
 
     const showSavedIndicator = (msg = '✓ บันทึกถาวร') => {
       if (el.idSavedBadge) {
@@ -513,10 +525,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     el.participantInput.addEventListener('input', (e) => {
       const val = e.target.value.trim() || getHardwareFingerprint();
-      state.participantId = val;
-      localStorage.setItem('rssi_participant_id', val);
-      setCookie('rssi_participant_id', val);
-      showSavedIndicator('✓ อัปเดตรหัสแล้ว');
+      if (val !== state.participantId) {
+        state.participantId = val;
+        localStorage.setItem('rssi_participant_id', val);
+        setCookie('rssi_participant_id', val);
+        lastProcessedId = 0;
+        resetData();
+        showSavedIndicator('✓ อัปเดตรหัสแล้ว');
+        updateServerUrlDisplay();
+      }
     });
 
     if (el.btnCopyId) {
@@ -531,11 +548,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (el.btnResetHwId) {
       el.btnResetHwId.addEventListener('click', () => {
         const hwId = getHardwareFingerprint();
-        state.participantId = hwId;
-        el.participantInput.value = hwId;
-        localStorage.setItem('rssi_participant_id', hwId);
-        setCookie('rssi_participant_id', hwId);
-        showSavedIndicator('✓ คืนค่ารหัสเครื่อง');
+        if (hwId !== state.participantId) {
+          state.participantId = hwId;
+          el.participantInput.value = hwId;
+          localStorage.setItem('rssi_participant_id', hwId);
+          setCookie('rssi_participant_id', hwId);
+          lastProcessedId = 0;
+          resetData();
+          showSavedIndicator('✓ คืนค่ารหัสเครื่อง');
+          updateServerUrlDisplay();
+        }
       });
     }
   }
@@ -703,11 +725,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // 16. Clear Data
+  // 16. Clear Data (Isolated to this participant)
   el.btnClear.addEventListener('click', async () => {
     if (confirm('ต้องการล้างข้อมูลทั้งหมดในรอบนี้หรือไม่?')) {
       try {
-        await fetch('/api/log?action=clear', { method: 'DELETE' });
+        const pId = encodeURIComponent(state.participantId || '');
+        await fetch(`/api/log?action=clear&participant_id=${pId}`, { method: 'DELETE' });
       } catch (e) {}
       lastProcessedId = 0;
       resetData();
@@ -735,14 +758,16 @@ document.addEventListener('DOMContentLoaded', () => {
     el.btnSyncGdrive.addEventListener('click', () => syncToGoogleDrive(false));
   }
 
-  // 18. Copy Server Ingest URL
-  const serverUrl = window.location.origin + '/api/log';
+  // 18. Copy Server Ingest URL (Bound to this device)
+  function getIngestUrl() {
+    return `${window.location.origin}/api/log?participant_id=${encodeURIComponent(state.participantId)}`;
+  }
   if (el.serverUrlDisplay) {
-    el.serverUrlDisplay.textContent = serverUrl;
+    el.serverUrlDisplay.textContent = getIngestUrl();
   }
   if (el.btnCopyUrl) {
     el.btnCopyUrl.addEventListener('click', () => {
-      navigator.clipboard.writeText(serverUrl).then(() => {
+      navigator.clipboard.writeText(getIngestUrl()).then(() => {
         el.btnCopyUrl.textContent = 'คัดลอกแล้ว ✓';
         setTimeout(() => el.btnCopyUrl.textContent = 'คัดลอก', 1500);
       });

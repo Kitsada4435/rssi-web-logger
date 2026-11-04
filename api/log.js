@@ -33,29 +33,52 @@ module.exports = async (req, res) => {
     return;
   }
 
-  // 1. Handle Clear / Delete Action
-  if (req.method === 'DELETE' || (req.query && req.query.action === 'clear')) {
-    memoryStore = [];
-    global._rssiMemoryStore = memoryStore;
-    persistStore();
-    return res.status(200).json({ status: 'ok', message: 'Cleared' });
-  }
-
   const rawQuery = req.method === 'GET' ? req.query : { ...req.query, ...req.body };
   const query = {};
   for (const [k, v] of Object.entries(rawQuery || {})) {
     query[k.trim().toLowerCase()] = typeof v === 'string' ? v.trim() : v;
   }
 
+  // 1. Handle Clear / Delete Action (Strict Isolation per participant)
+  if (req.method === 'DELETE' || query.action === 'clear') {
+    const targetParticipant = query.participant_id ? String(query.participant_id).toLowerCase().trim() : null;
+    if (targetParticipant) {
+      memoryStore = memoryStore.filter(e => String(e.participant_id || '').toLowerCase().trim() !== targetParticipant);
+    } else {
+      memoryStore = [];
+    }
+    global._rssiMemoryStore = memoryStore;
+    persistStore();
+    return res.status(200).json({ status: 'ok', message: targetParticipant ? `Cleared for ${targetParticipant}` : 'Cleared all' });
+  }
+
   const hasTelemetry = query.bssid || query.ssid || query.rssi !== undefined;
   const isLogsUrl = (req.url && (req.url.includes('/api/logs') || req.url.includes('/api/stream'))) || query.action === 'get';
 
-  // 2. Handle Fetching Logs (Polled by Web Dashboard)
+  // 2. Handle Fetching Logs (Polled by Web Dashboard with Strict Multi-User Isolation)
   if (isLogsUrl || (req.method === 'GET' && !hasTelemetry && req.headers.accept && !req.headers.accept.includes('text/html'))) {
+    let filteredLogs = memoryStore;
+
+    // Strict participant filter: Each client only receives packets destined for their device ID
+    if (query.participant_id) {
+      const pId = String(query.participant_id).toLowerCase().trim();
+      filteredLogs = filteredLogs.filter(e => String(e.participant_id || '').toLowerCase().trim() === pId);
+    } else {
+      // Reject polling without participant_id to prevent leaking other participants' data
+      filteredLogs = [];
+    }
+
+    if (query.after_id !== undefined && query.after_id !== '') {
+      const afterId = parseInt(query.after_id, 10);
+      if (!isNaN(afterId)) {
+        filteredLogs = filteredLogs.filter(e => e.id > afterId);
+      }
+    }
+
     return res.status(200).json({
       status: 'ok',
-      count: memoryStore.length,
-      logs: memoryStore
+      count: filteredLogs.length,
+      logs: filteredLogs
     });
   }
 
@@ -151,7 +174,12 @@ function recordTelemetry(query, req) {
   };
 
   memoryStore.push(entry);
-  if (memoryStore.length > 5000) memoryStore.shift();
+  if (memoryStore.length > 20000) {
+    const cutoff = Date.now() - (2 * 60 * 60 * 1000);
+    memoryStore = memoryStore.filter(e => (e.t_utc_ms || 0) > cutoff);
+    if (memoryStore.length > 25000) memoryStore.splice(0, memoryStore.length - 20000);
+    global._rssiMemoryStore = memoryStore;
+  }
   persistStore();
   return entry;
 }

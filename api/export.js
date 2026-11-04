@@ -2,6 +2,13 @@ let memoryStore = global._rssiMemoryStore || [];
 global._rssiMemoryStore = memoryStore;
 
 module.exports = (req, res) => {
+  const query = req.query || {};
+  let targetLogs = memoryStore;
+  if (query.participant_id) {
+    const pId = String(query.participant_id).toLowerCase().trim();
+    targetLogs = targetLogs.filter(e => String(e.participant_id || '').toLowerCase().trim() === pId);
+  }
+
   const headers = [
     't_utc_ms',
     'timestamp',
@@ -22,7 +29,7 @@ module.exports = (req, res) => {
     'note'
   ];
   let csv = headers.join(',') + '\n';
-  memoryStore.forEach(row => {
+  targetLogs.forEach(row => {
     const tUtc = row.t_utc_ms || (row.timestamp ? Date.parse(row.timestamp) : Date.now());
     const line = [
       tUtc,
