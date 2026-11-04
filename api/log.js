@@ -133,7 +133,7 @@ function recordTelemetry(query, req) {
   const accuracy = query.accuracy !== undefined && query.accuracy !== '' ? parseFloat(query.accuracy) : 5.0;
   const mode = query.user_label_mode || query.mode || 'walk';
   const participantId = query.participant_id ? decodeURIComponent(query.participant_id).trim() : (query.id ? decodeURIComponent(query.id).trim() : (query.device_id ? decodeURIComponent(query.device_id).trim() : 'USR-ANON'));
-  const tripId = query.session_id || query.trip_id || 'TRIP-DEFAULT';
+  const tripId = (query.session_id && query.session_id !== 'TRIP-DEFAULT') ? query.session_id : ((query.trip_id && query.trip_id !== 'TRIP-DEFAULT') ? query.trip_id : '');
   const note = query.note || query.notes || query.location_note || '';
 
   // Timing

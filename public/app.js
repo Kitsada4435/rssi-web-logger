@@ -214,8 +214,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Geolocation Tracker (Pure Satellite Hardware - 0 MB Cellular Data Used)
-  let lastGeoPos = null;
-  let lastGeoTime = null;
+  const geoHistory = [];
+  let lastFilteredSpeed = 0.0;
 
   function startGeoTracking() {
     if ('geolocation' in navigator) {
@@ -223,29 +223,41 @@ document.addEventListener('DOMContentLoaded', () => {
         (pos) => {
           const lat = pos.coords.latitude;
           const lng = pos.coords.longitude;
-          const now = pos.timestamp || Date.now();
+          const now = Date.now();
           let speedNum = 0.0;
 
           // 1. Native speed if provided by hardware (> 0)
           if (pos.coords.speed !== null && !isNaN(pos.coords.speed) && pos.coords.speed > 0) {
             speedNum = pos.coords.speed * 3.6;
-          } else if (lastGeoPos && lastGeoTime) {
-            // 2. Kinematic calculation for iOS Safari (dt >= 0.8s, ignore micro-drift < 0.6m)
-            const dt = (now - lastGeoTime) / 1000;
-            if (dt >= 0.8) {
-              const dist = calcHaversineDistance(lastGeoPos.lat, lastGeoPos.lng, lat, lng);
-              if (dist >= 0.6) {
-                speedNum = (dist / dt) * 3.6;
+            lastFilteredSpeed = speedNum;
+          } else {
+            // 2. Rolling Kinematic calculation for iOS Safari
+            geoHistory.push({ lat, lng, time: now });
+            if (geoHistory.length > 5) geoHistory.shift();
+
+            if (geoHistory.length >= 2) {
+              const oldest = geoHistory[0];
+              const dt = (now - oldest.time) / 1000;
+              if (dt >= 1.0) {
+                const dist = calcHaversineDistance(oldest.lat, oldest.lng, lat, lng);
+                // Deadband filter: if distance moved over window is >= 0.7m, calculate walking speed
+                if (dist >= 0.7) {
+                  const instantSpeed = (dist / dt) * 3.6;
+                  // Smooth with EMA to prevent erratic spikes from indoor GPS jitter
+                  speedNum = lastFilteredSpeed > 0 ? (0.5 * instantSpeed + 0.5 * lastFilteredSpeed) : instantSpeed;
+                  lastFilteredSpeed = speedNum;
+                } else {
+                  // Stationary / standing still
+                  lastFilteredSpeed = 0.0;
+                  speedNum = 0.0;
+                }
+              } else {
+                speedNum = lastFilteredSpeed;
               }
             }
           }
 
-          if (lastGeoPos === null || (now - lastGeoTime) >= 800) {
-            lastGeoPos = { lat, lng };
-            lastGeoTime = now;
-          }
-
-          if (speedNum > 180) speedNum = 0.0; // Filter unreasonable GPS telemetry jumps
+          if (speedNum > 150) speedNum = 0.0; // Filter unreasonable GPS telemetry jumps
           const speed = speedNum.toFixed(2);
           const acc = pos.coords.accuracy ? Math.round(pos.coords.accuracy) : 5;
 
@@ -289,10 +301,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Always stamp the user's active Student ID from the input box!
     entry.participant_id = state.participantId || entry.participant_id || 'USR-ANON';
+    const activeTrip = (state.tripId && state.tripId !== 'IDLE') ? state.tripId : ('TRIP-' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '-' + Math.random().toString(36).substring(2, 6).toUpperCase());
     if (!entry.trip_id || entry.trip_id === 'TRIP-DEFAULT') {
-      entry.trip_id = state.tripId;
+      entry.trip_id = activeTrip;
     }
-    entry.session_id = entry.session_id || entry.trip_id;
+    if (!entry.session_id || entry.session_id === 'TRIP-DEFAULT') {
+      entry.session_id = activeTrip;
+    }
 
     if (!entry.note && state.tripNote) {
       entry.note = state.tripNote;
@@ -507,14 +522,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Map logs to 18 clean core research metrics
+    const activeTrip = (state.tripId && state.tripId !== 'IDLE') ? state.tripId : ('TRIP-' + new Date().toISOString().slice(0, 10).replace(/-/g, ''));
     const payloadLogs = state.logs.map(row => {
       const tUtc = row.t_utc_ms || (row.timestamp ? Date.parse(row.timestamp) : Date.now());
       let spd = row.speed !== null && row.speed !== undefined ? row.speed : (state.currentLocation ? state.currentLocation.speed : '0.00');
       if (typeof spd === 'number') spd = spd.toFixed(2);
+      const rowSession = (row.session_id && row.session_id !== 'TRIP-DEFAULT') ? row.session_id : ((row.trip_id && row.trip_id !== 'TRIP-DEFAULT') ? row.trip_id : activeTrip);
       return {
         t_utc_ms: tUtc,
         timestamp: row.timestamp || new Date(tUtc).toISOString(),
-        session_id: row.session_id || row.trip_id || state.tripId,
+        session_id: rowSession,
         participant_id: row.participant_id || state.participantId,
         platform: row.platform || state.platform || 'ios',
         device_model: row.device_model || state.deviceModel || 'Apple iPhone',
@@ -809,14 +826,16 @@ document.addEventListener('DOMContentLoaded', () => {
       'note'
     ];
     let csv = headers.join(',') + '\n';
+    const activeTrip = (state.tripId && state.tripId !== 'IDLE') ? state.tripId : ('TRIP-' + new Date().toISOString().slice(0, 10).replace(/-/g, ''));
     state.logs.forEach(row => {
       const tUtc = row.t_utc_ms || (row.timestamp ? Date.parse(row.timestamp) : Date.now());
       let spd = row.speed !== null && row.speed !== undefined ? row.speed : (state.currentLocation ? state.currentLocation.speed : '0.00');
       if (typeof spd === 'number') spd = spd.toFixed(2);
+      const rowSession = (row.session_id && row.session_id !== 'TRIP-DEFAULT') ? row.session_id : ((row.trip_id && row.trip_id !== 'TRIP-DEFAULT') ? row.trip_id : activeTrip);
       const line = [
         tUtc,
         row.timestamp || new Date(tUtc).toISOString(),
-        row.session_id || row.trip_id || state.tripId,
+        rowSession,
         row.participant_id || state.participantId,
         row.platform || state.platform || 'ios',
         `"${(row.device_model || state.deviceModel || 'Apple iPhone').replace(/"/g, '""')}"`,
