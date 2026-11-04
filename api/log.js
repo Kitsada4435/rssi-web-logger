@@ -138,30 +138,17 @@ function recordTelemetry(query, req) {
   const osVersion = query.os_version || (platform === 'android' ? 'Android' : 'iOS 18.1');
   const rssiSource = query.rssi_source || (platform === 'android' ? 'wifimanager' : 'shortcut');
 
-  // IMU Motion data (if forwarded)
-  const accelX = query.accel_x !== undefined ? query.accel_x : '';
-  const accelY = query.accel_y !== undefined ? query.accel_y : '';
-  const accelZ = query.accel_z !== undefined ? query.accel_z : '';
-  const gyroX = query.gyro_x !== undefined ? query.gyro_x : '';
-  const gyroY = query.gyro_y !== undefined ? query.gyro_y : '';
-  const gyroZ = query.gyro_z !== undefined ? query.gyro_z : '';
+  let formattedSpeed = speed;
+  if (typeof formattedSpeed === 'number' && !isNaN(formattedSpeed)) {
+    formattedSpeed = parseFloat(formattedSpeed.toFixed(2));
+  }
 
   // Phone Position
   const phonePosition = query.phone_position || 'pocket';
 
-  // Predicted Motion Mode (Activity recognition from mobile or speed heuristic)
-  let predictedMode = query.activity_recognition_mode || query.predicted_mode || query.activity || query.motion || null;
-  if (!predictedMode) {
-    if (speed < 0.3) predictedMode = 'still';
-    else if (speed <= 1.8) predictedMode = 'walk';
-    else if (speed <= 5.0) predictedMode = 'run';
-    else predictedMode = 'vehicle';
-  }
-
   const entry = {
     id: memoryStore.length + 1,
     t_utc_ms: tUtcMs,
-    t_mono_ns: query.t_mono_ns || '',
     timestamp: new Date(tUtcMs).toISOString(),
     session_id: tripId,
     participant_id: participantId,
@@ -170,20 +157,13 @@ function recordTelemetry(query, req) {
     os_version: osVersion,
     lat: lat,
     lon: lon,
-    speed: speed,
+    speed: formattedSpeed,
     accuracy: accuracy,
-    accel_x: accelX,
-    accel_y: accelY,
-    accel_z: accelZ,
-    gyro_x: gyroX,
-    gyro_y: gyroY,
-    gyro_z: gyroZ,
     bssid: bssid,
     ssid: ssid,
     rssi_raw: rssi,
     rssi_source: rssiSource,
     user_label_mode: mode,
-    activity_recognition_mode: predictedMode,
     phone_position: phonePosition,
     note: note,
     trip_id: tripId,

@@ -52,10 +52,10 @@ class CloudManager {
       final lines = await csvFile.readAsLines();
       if (lines.length > 1) {
         final row = lines[1].split(',');
-        if (row.length >= 8) {
-          participantId = row[4].replaceAll('"', '');
-          os = row[5].replaceAll('"', '');
-          deviceModel = row[6].replaceAll('"', '');
+        if (row.length >= 6) {
+          participantId = row[3].replaceAll('"', '');
+          os = row[4].replaceAll('"', '');
+          deviceModel = row[5].replaceAll('"', '');
         }
       }
 

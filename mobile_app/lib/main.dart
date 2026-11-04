@@ -115,6 +115,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
   // New Fields
   final TextEditingController _participantController = TextEditingController();
+  final TextEditingController _noteController = TextEditingController();
   String _phonePosition = 'pocket';
 
   StreamSubscription<void>? _snapshotSub;
@@ -174,6 +175,7 @@ class _DashboardPageState extends State<DashboardPage> {
     _snapshotSub?.cancel();
     _uiTimer?.cancel();
     _participantController.dispose();
+    _noteController.dispose();
     super.dispose();
   }
 
@@ -235,6 +237,10 @@ class _DashboardPageState extends State<DashboardPage> {
         phonePosition: _phonePosition,
       );
       _lastSessionId = widget.sensorManager.getCurrentSessionId();
+      if (_lastSessionId != null) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('session_note_$_lastSessionId', _noteController.text.trim());
+      }
     } else {
       setState(() {
          _isRecording = false; // ปิดสถานะ Recording ทันทีที่กด
@@ -460,6 +466,29 @@ class _DashboardPageState extends State<DashboardPage> {
                       ),
                     ],
                   )
+                ),
+
+                // Note Input Field
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  margin: const EdgeInsets.only(top: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.grey.shade200)
+                  ),
+                  child: TextField(
+                    controller: _noteController,
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.black87),
+                    decoration: const InputDecoration(
+                      labelText: 'TRIP NOTE (ระบุบริบทสถานที่/จุดสังเกต)',
+                      border: InputBorder.none,
+                      isDense: true,
+                      contentPadding: EdgeInsets.zero,
+                      labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+                      suffixIcon: Icon(Icons.edit_note_rounded, size: 18, color: Colors.blueGrey),
+                    ),
+                  ),
                 ),
               
               if (!_isRecording) const SizedBox(height: 16),

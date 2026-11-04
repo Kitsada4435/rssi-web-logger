@@ -187,7 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const lat = pos.coords.latitude;
           const lng = pos.coords.longitude;
           const speedNum = pos.coords.speed !== null && !isNaN(pos.coords.speed) ? pos.coords.speed * 3.6 : 0.0;
-          const speed = speedNum.toFixed(1);
+          const speed = speedNum.toFixed(2);
           const acc = pos.coords.accuracy ? Math.round(pos.coords.accuracy) : 5;
 
           // Automatic Mode Prediction based on kinematics
@@ -442,13 +442,13 @@ document.addEventListener('DOMContentLoaded', () => {
       el.btnSyncGdrive.innerHTML = '<span class="icon">⏳</span><span>กำลังส่ง...</span>';
     }
 
-    // Map logs to 26 core research metrics (Unified Research Schema)
+    // Map logs to 18 clean core research metrics
     const payloadLogs = state.logs.map(row => {
       const tUtc = row.t_utc_ms || (row.timestamp ? Date.parse(row.timestamp) : Date.now());
-      const tMono = row.t_mono_ns || Math.round(performance.now() * 1000000);
+      let spd = row.speed !== null && row.speed !== undefined ? row.speed : (state.currentLocation ? state.currentLocation.speed : '0.00');
+      if (typeof spd === 'number') spd = spd.toFixed(2);
       return {
         t_utc_ms: tUtc,
-        t_mono_ns: tMono,
         timestamp: row.timestamp || new Date(tUtc).toISOString(),
         session_id: row.session_id || row.trip_id || state.tripId,
         participant_id: row.participant_id || state.participantId,
@@ -457,20 +457,13 @@ document.addEventListener('DOMContentLoaded', () => {
         os_version: row.os_version || state.osVersion || 'iOS 18.1',
         lat: row.lat !== null && row.lat !== undefined ? row.lat : (state.currentLocation ? state.currentLocation.lat : ''),
         lon: row.lon !== null && row.lon !== undefined ? row.lon : (state.currentLocation ? state.currentLocation.lng : ''),
-        speed: row.speed !== null && row.speed !== undefined ? row.speed : (state.currentLocation ? state.currentLocation.speed : 0),
+        speed: spd,
         accuracy: row.accuracy !== null && row.accuracy !== undefined ? row.accuracy : (state.currentLocation ? state.currentLocation.accuracy : 5),
-        accel_x: row.accel_x !== undefined && row.accel_x !== null ? row.accel_x : state.imu.accelX,
-        accel_y: row.accel_y !== undefined && row.accel_y !== null ? row.accel_y : state.imu.accelY,
-        accel_z: row.accel_z !== undefined && row.accel_z !== null ? row.accel_z : state.imu.accelZ,
-        gyro_x: row.gyro_x !== undefined && row.gyro_x !== null ? row.gyro_x : state.imu.gyroX,
-        gyro_y: row.gyro_y !== undefined && row.gyro_y !== null ? row.gyro_y : state.imu.gyroY,
-        gyro_z: row.gyro_z !== undefined && row.gyro_z !== null ? row.gyro_z : state.imu.gyroZ,
         bssid: row.bssid || '',
         ssid: row.ssid || '',
         rssi_raw: row.rssi_raw !== null && row.rssi_raw !== undefined ? row.rssi_raw : (row.rssi !== null && row.rssi !== undefined ? row.rssi : ''),
         rssi_source: row.rssi_source || (row.platform === 'android' ? 'wifimanager' : 'shortcut'),
         user_label_mode: row.user_label_mode || state.selectedMode,
-        activity_recognition_mode: row.activity_recognition_mode || row.predicted_mode || state.predictedMode || 'still',
         phone_position: row.phone_position || state.phonePosition,
         note: row.note || state.tripNote || ''
       };
@@ -660,7 +653,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // 14. Export CSV (Instant Local Download - Unified 26 Core Research Columns)
+  // 14. Export CSV (Instant Local Download - Clean 18 Core Research Columns)
   el.btnExport.addEventListener('click', () => {
     if (state.logs.length === 0) {
       alert('ไม่มีข้อมูลในรอบนี้ กรุณากด START TRIP หรือกดทดสอบสัญญาณก่อน');
@@ -668,7 +661,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     const headers = [
       't_utc_ms',
-      't_mono_ns',
       'timestamp',
       'session_id',
       'participant_id',
@@ -679,28 +671,21 @@ document.addEventListener('DOMContentLoaded', () => {
       'lon',
       'speed',
       'accuracy',
-      'accel_x',
-      'accel_y',
-      'accel_z',
-      'gyro_x',
-      'gyro_y',
-      'gyro_z',
       'bssid',
       'ssid',
       'rssi_raw',
       'rssi_source',
       'user_label_mode',
-      'activity_recognition_mode',
       'phone_position',
       'note'
     ];
     let csv = headers.join(',') + '\n';
     state.logs.forEach(row => {
       const tUtc = row.t_utc_ms || (row.timestamp ? Date.parse(row.timestamp) : Date.now());
-      const tMono = row.t_mono_ns || Math.round(performance.now() * 1000000);
+      let spd = row.speed !== null && row.speed !== undefined ? row.speed : (state.currentLocation ? state.currentLocation.speed : '0.00');
+      if (typeof spd === 'number') spd = spd.toFixed(2);
       const line = [
         tUtc,
-        tMono,
         row.timestamp || new Date(tUtc).toISOString(),
         row.session_id || row.trip_id || state.tripId,
         row.participant_id || state.participantId,
@@ -709,20 +694,13 @@ document.addEventListener('DOMContentLoaded', () => {
         `"${(row.os_version || state.osVersion || 'iOS 18.1').replace(/"/g, '""')}"`,
         row.lat !== null && row.lat !== undefined ? row.lat : (state.currentLocation ? state.currentLocation.lat : ''),
         row.lon !== null && row.lon !== undefined ? row.lon : (state.currentLocation ? state.currentLocation.lng : ''),
-        row.speed !== null && row.speed !== undefined ? row.speed : (state.currentLocation ? state.currentLocation.speed : 0),
+        spd,
         row.accuracy !== null && row.accuracy !== undefined ? row.accuracy : (state.currentLocation ? state.currentLocation.accuracy : 5),
-        row.accel_x !== undefined && row.accel_x !== null ? row.accel_x : state.imu.accelX,
-        row.accel_y !== undefined && row.accel_y !== null ? row.accel_y : state.imu.accelY,
-        row.accel_z !== undefined && row.accel_z !== null ? row.accel_z : state.imu.accelZ,
-        row.gyro_x !== undefined && row.gyro_x !== null ? row.gyro_x : state.imu.gyroX,
-        row.gyro_y !== undefined && row.gyro_y !== null ? row.gyro_y : state.imu.gyroY,
-        row.gyro_z !== undefined && row.gyro_z !== null ? row.gyro_z : state.imu.gyroZ,
         row.bssid || '',
         `"${(row.ssid || '').replace(/"/g, '""')}"`,
         row.rssi_raw !== null && row.rssi_raw !== undefined ? row.rssi_raw : (row.rssi !== null && row.rssi !== undefined ? row.rssi : -99),
         row.rssi_source || (row.platform === 'android' ? 'wifimanager' : 'shortcut'),
         row.user_label_mode || state.selectedMode,
-        row.activity_recognition_mode || row.predicted_mode || state.predictedMode || 'still',
         row.phone_position || state.phonePosition,
         `"${(row.note || state.tripNote || '').replace(/"/g, '""')}"`
       ];
