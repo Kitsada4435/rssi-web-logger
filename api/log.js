@@ -59,12 +59,15 @@ module.exports = async (req, res) => {
   if (isLogsUrl || (req.method === 'GET' && !hasTelemetry && req.headers.accept && !req.headers.accept.includes('text/html'))) {
     let filteredLogs = memoryStore;
 
-    // Strict participant filter: Each client receives packets for their device ID (and fallback anon)
+    // Strict participant filter: Each client receives packets for their device ID (and fallback for iOS/iPhone/anon)
     if (query.participant_id) {
       const pId = String(query.participant_id).toLowerCase().trim();
+      const isIosClient = pId.startsWith('ios-') || pId === 'iphone';
       filteredLogs = filteredLogs.filter(e => {
         const ePid = String(e.participant_id || '').toLowerCase().trim();
-        return ePid === pId || ePid === 'usr-anon';
+        if (ePid === pId || ePid === 'usr-anon') return true;
+        if (isIosClient && (ePid === 'iphone' || ePid.startsWith('ios-'))) return true;
+        return false;
       });
     } else {
       // Reject polling without participant_id to prevent leaking other participants' data

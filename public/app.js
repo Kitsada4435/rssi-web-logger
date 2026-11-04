@@ -226,12 +226,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 5. Ingest Telemetry Entry (Text-First Display)
   function ingestEntry(entry) {
-    // Multi-User Security: Reject packets belonging to another participant (allow USR-ANON fallback)
+    // Multi-User Security: Accept matching participant or iPhone/iOS/Anon
     if (entry.participant_id && state.participantId) {
       const entryPid = String(entry.participant_id).toLowerCase().trim();
       const currentPid = String(state.participantId).toLowerCase().trim();
+      const isIosSession = currentPid.startsWith('ios-') || currentPid === 'iphone';
       if (entryPid !== currentPid && entryPid !== 'usr-anon') {
-        return;
+        if (!isIosSession || (entryPid !== 'iphone' && !entryPid.startsWith('ios-'))) {
+          return;
+        }
       }
     }
 
