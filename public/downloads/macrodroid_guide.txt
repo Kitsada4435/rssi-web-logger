@@ -11,4 +11,4 @@
   3. ดึงค่า Wi-Fi SSID -> ตัวแปร [wifi_ssid]
   4. ดึงค่า Wi-Fi RSSI (dBm) -> ตัวแปร [wifi_rssi]
   5. ส่งคำขอ HTTP GET / POST:
-     URL: http://10.194.242.107:3000/api/log?bssid=[wifi_bssid]&ssid=[wifi_ssid]&rssi=[wifi_rssi]&participant_id=[device_name]
+     URL: https://rssi-web-logger.vercel.app/api/log?bssid=[wifi_bssid]&ssid=[wifi_ssid]&rssi=[wifi_rssi]&participant_id=[device_name]

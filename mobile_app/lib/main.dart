@@ -256,6 +256,8 @@ class _DashboardPageState extends State<DashboardPage> {
       }
       
       if (_lastSessionId != null) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('session_note_$_lastSessionId', _noteController.text.trim());
         final exporter = ExportManager(widget.db);
         final csvPath = await exporter.exportToCsv(_lastSessionId!);
         

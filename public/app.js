@@ -148,6 +148,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // Auto-restore WakeLock on returning to Safari tab
+  document.addEventListener('visibilitychange', async () => {
+    if (state.isRecording && document.visibilityState === 'visible') {
+      await requestWakeLock();
+    }
+  });
+
   // 4. Motion / Activity Recognition UI
   function updatePredictedModeUI() {
     if (el.predictedModeVal) {

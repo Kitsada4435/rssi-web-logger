@@ -154,7 +154,6 @@ class SensorManager {
   Future<List<String>> checkMissingPermissions() async {
     List<String> missing = [];
     missing.addAll(await gps.checkMissingPermissions());
-    missing.addAll(await activity.checkMissingPermissions());
     if (Platform.isAndroid) {
       final notif = await Permission.notification.status;
       if (notif.isDenied || notif.isPermanentlyDenied) {

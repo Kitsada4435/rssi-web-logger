@@ -82,7 +82,7 @@ class MainActivity: FlutterActivity() {
                 } else {
                     // Not connected to Wi-Fi
                     val result = mapOf(
-                        "rssi" to 0,
+                        "rssi" to -99,
                         "bssid" to "disconnected",
                         "ssid" to "disconnected"
                     )
