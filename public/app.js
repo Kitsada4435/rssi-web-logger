@@ -226,19 +226,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 5. Ingest Telemetry Entry (Text-First Display)
   function ingestEntry(entry) {
-    // Multi-User Security: Accept matching participant or iPhone/iOS/Anon
+    // Multi-User Security: Accept matching participant or iPhone/iOS Shortcut
     if (entry.participant_id && state.participantId) {
       const entryPid = String(entry.participant_id).toLowerCase().trim();
       const currentPid = String(state.participantId).toLowerCase().trim();
-      const isIosSession = currentPid.startsWith('ios-') || currentPid === 'iphone';
-      if (entryPid !== currentPid && entryPid !== 'usr-anon') {
-        if (!isIosSession || (entryPid !== 'iphone' && !entryPid.startsWith('ios-'))) {
-          return;
-        }
+      if (entryPid !== currentPid && entryPid !== 'usr-anon' && entryPid !== 'iphone') {
+        if (!entryPid.startsWith('ios-')) return;
       }
     }
 
-    // Retain client-defined participant ID, never let incoming packets overwrite it
+    // Always stamp the user's active Student ID from the input box!
     entry.participant_id = state.participantId || entry.participant_id || 'USR-ANON';
     if (!entry.trip_id || entry.trip_id === 'TRIP-DEFAULT') {
       entry.trip_id = state.tripId;
@@ -353,7 +350,8 @@ document.addEventListener('DOMContentLoaded', () => {
     isPolling = true;
     try {
       const pId = encodeURIComponent(state.participantId || '');
-      const url = `/api/log?action=get&participant_id=${pId}&after_id=${lastProcessedId}&t=${Date.now()}`;
+      const plat = encodeURIComponent(state.platform || 'ios');
+      const url = `/api/log?action=get&participant_id=${pId}&platform=${plat}&after_id=${lastProcessedId}&t=${Date.now()}`;
       const res = await fetch(url, { cache: 'no-store' });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
