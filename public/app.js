@@ -74,7 +74,11 @@ document.addEventListener('DOMContentLoaded', () => {
     gdriveWebhook: localStorage.getItem('rssi_gdrive_webhook') || 'https://script.google.com/macros/s/AKfycbwry_goxlTURpP6xBBi6jvTBfGNrhppeS4xQtPEoBVae52dNa0DnfblQgJDzj-TE_Dr/exec',
     autoSyncGdrive: localStorage.getItem('rssi_autosync_gdrive') !== 'false',
     selectedMode: 'walk',
+    predictedMode: 'still',
     currentLocation: null,
+    currentAltitude: null,
+    currentHeading: null,
+    currentAttitude: '',
     watchId: null,
     wakeLock: null,
     logs: []
@@ -100,6 +104,9 @@ document.addEventListener('DOMContentLoaded', () => {
     currentBssid: document.getElementById('current-bssid'),
     gpsCoords: document.getElementById('gps-coords'),
     gpsSpeed: document.getElementById('gps-speed'),
+    gpsAltHeading: document.getElementById('gps-alt-heading'),
+    predictedModeVal: document.getElementById('predicted-mode-val'),
+    deviceAttitudeVal: document.getElementById('device-attitude-val'),
     totalSamples: document.getElementById('total-samples'),
     avgRssi: document.getElementById('avg-rssi'),
     participantInput: document.getElementById('participant-id-input'),
@@ -140,19 +147,87 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // 4. Geolocation Tracker (Pure Satellite Hardware - 0 MB Cellular Data Used)
+  // 4. Kinematics & Orientation Tracking
+  function updateKinematicsUI() {
+    const altStr = state.currentAltitude !== null && state.currentAltitude !== undefined ? `${state.currentAltitude} m` : '-- m';
+    const headStr = state.currentHeading !== null && state.currentHeading !== undefined ? `${state.currentHeading}°` : '--°';
+    if (el.gpsAltHeading) el.gpsAltHeading.textContent = `${altStr} • ${headStr}`;
+
+    if (el.predictedModeVal) {
+      const modeIcons = {
+        still: '🛑 นิ่ง (STILL)',
+        walk: '🚶 เดิน (WALK)',
+        run: '🏃 วิ่ง (RUN)',
+        vehicle: '🚗 รถ (VEHICLE)'
+      };
+      el.predictedModeVal.textContent = modeIcons[state.predictedMode] || state.predictedMode || '--';
+    }
+
+    if (el.deviceAttitudeVal) {
+      el.deviceAttitudeVal.textContent = state.currentAttitude || '--';
+    }
+  }
+
+  function handleOrientation(e) {
+    if (e.webkitCompassHeading !== undefined && e.webkitCompassHeading !== null) {
+      state.currentHeading = Math.round(e.webkitCompassHeading);
+    } else if (e.alpha !== null && !isNaN(e.alpha)) {
+      state.currentHeading = Math.round(360 - e.alpha) % 360;
+    }
+
+    if (e.beta !== null && e.gamma !== null && !isNaN(e.beta) && !isNaN(e.gamma)) {
+      state.currentAttitude = `P:${Math.round(e.beta)}° / R:${Math.round(e.gamma)}°`;
+    }
+    updateKinematicsUI();
+  }
+
+  function startOrientationTracking() {
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+      window._requestOrientationPermission = () => {
+        DeviceOrientationEvent.requestPermission().then(res => {
+          if (res === 'granted') {
+            window.addEventListener('deviceorientation', handleOrientation, true);
+          }
+        }).catch(() => {});
+      };
+    } else {
+      window.addEventListener('deviceorientation', handleOrientation, true);
+    }
+  }
+
+  // Geolocation Tracker (Pure Satellite Hardware - 0 MB Cellular Data Used)
   function startGeoTracking() {
     if ('geolocation' in navigator) {
       state.watchId = navigator.geolocation.watchPosition(
         (pos) => {
           const lat = pos.coords.latitude;
           const lng = pos.coords.longitude;
-          const speed = pos.coords.speed !== null ? (pos.coords.speed * 3.6).toFixed(1) : '0.0';
+          const speedNum = pos.coords.speed !== null && !isNaN(pos.coords.speed) ? pos.coords.speed * 3.6 : 0.0;
+          const speed = speedNum.toFixed(1);
           const acc = pos.coords.accuracy ? Math.round(pos.coords.accuracy) : 5;
+          const alt = pos.coords.altitude !== null && !isNaN(pos.coords.altitude) ? Math.round(pos.coords.altitude * 10) / 10 : null;
+          const heading = pos.coords.heading !== null && !isNaN(pos.coords.heading) ? Math.round(pos.coords.heading) : null;
 
-          state.currentLocation = { lat, lng, speed, accuracy: acc };
+          if (alt !== null) state.currentAltitude = alt;
+          if (heading !== null) state.currentHeading = heading;
+
+          // Automatic Mode Prediction based on kinematics
+          if (speedNum < 1.0) state.predictedMode = 'still';
+          else if (speedNum <= 6.5) state.predictedMode = 'walk';
+          else if (speedNum <= 18.0) state.predictedMode = 'run';
+          else state.predictedMode = 'vehicle';
+
+          state.currentLocation = {
+            lat,
+            lng,
+            speed,
+            accuracy: acc,
+            altitude: state.currentAltitude,
+            heading: state.currentHeading
+          };
           el.gpsCoords.textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
           el.gpsSpeed.textContent = `${speed} km/h (±${acc}m)`;
+          updateKinematicsUI();
         },
         (err) => {
           console.warn('Geolocation notice:', err.message);
@@ -176,6 +251,32 @@ document.addEventListener('DOMContentLoaded', () => {
       entry.note = state.tripNote;
     }
 
+    // Kinematics fallback
+    if (entry.altitude !== undefined && entry.altitude !== null && entry.altitude !== '') {
+      state.currentAltitude = parseFloat(entry.altitude);
+    } else {
+      entry.altitude = state.currentAltitude;
+    }
+
+    if (entry.heading !== undefined && entry.heading !== null && entry.heading !== '') {
+      state.currentHeading = parseFloat(entry.heading);
+    } else {
+      entry.heading = state.currentHeading;
+    }
+
+    if (entry.predicted_mode) {
+      state.predictedMode = entry.predicted_mode;
+    } else {
+      entry.predicted_mode = state.predictedMode;
+    }
+
+    if (entry.attitude) {
+      state.currentAttitude = entry.attitude;
+    } else {
+      entry.attitude = state.currentAttitude;
+    }
+
+    updateKinematicsUI();
     state.logs.push(entry);
 
     // Update Numerical & Text RSSI
@@ -325,19 +426,23 @@ document.addEventListener('DOMContentLoaded', () => {
       el.btnSyncGdrive.innerHTML = '<span class="icon">⏳</span><span>กำลังส่ง...</span>';
     }
 
-    // Map logs ensuring the participant ID is the current user's ID
+    // Map logs ensuring all metrics & custom participant ID are included
     const payloadLogs = state.logs.map(row => ({
       timestamp: row.timestamp || new Date().toISOString(),
       participant_id: state.participantId,
       trip_id: state.tripId,
       latitude: row.latitude !== null && row.latitude !== undefined ? row.latitude : (state.currentLocation ? state.currentLocation.lat : ''),
       longitude: row.longitude !== null && row.longitude !== undefined ? row.longitude : (state.currentLocation ? state.currentLocation.lng : ''),
+      altitude: row.altitude !== null && row.altitude !== undefined ? row.altitude : (state.currentAltitude !== null ? state.currentAltitude : ''),
+      heading: row.heading !== null && row.heading !== undefined ? row.heading : (state.currentHeading !== null ? state.currentHeading : ''),
       accuracy: row.accuracy !== null && row.accuracy !== undefined ? row.accuracy : (state.currentLocation ? state.currentLocation.accuracy : 5),
       speed: row.speed !== null && row.speed !== undefined ? row.speed : (state.currentLocation ? state.currentLocation.speed : 0),
       ssid: row.ssid || '',
       bssid: row.bssid || '',
       rssi: row.rssi,
       user_label_mode: row.user_label_mode || state.selectedMode,
+      predicted_mode: row.predicted_mode || state.predictedMode || '',
+      attitude: row.attitude || state.currentAttitude || '',
       note: row.note || state.tripNote || ''
     }));
 
@@ -461,6 +566,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 12. Start Trip Action
   el.btnStart.addEventListener('click', () => {
+    if (typeof window._requestOrientationPermission === 'function') {
+      window._requestOrientationPermission();
+    }
     state.isRecording = true;
     state.tripId = 'TRIP-' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
     
@@ -502,7 +610,7 @@ document.addEventListener('DOMContentLoaded', () => {
       alert('ไม่มีข้อมูลในรอบนี้ กรุณากด START TRIP หรือกดทดสอบสัญญาณก่อน');
       return;
     }
-    const headers = ['timestamp','participant_id','trip_id','latitude','longitude','accuracy','speed','ssid','bssid','rssi','user_label_mode','note'];
+    const headers = ['timestamp','participant_id','trip_id','latitude','longitude','altitude','heading','accuracy','speed','ssid','bssid','rssi','user_label_mode','predicted_mode','attitude','note'];
     let csv = headers.join(',') + '\n';
     state.logs.forEach(row => {
       const line = [
@@ -511,12 +619,16 @@ document.addEventListener('DOMContentLoaded', () => {
         row.trip_id || state.tripId,
         row.latitude !== null && row.latitude !== undefined ? row.latitude : (state.currentLocation ? state.currentLocation.lat : ''),
         row.longitude !== null && row.longitude !== undefined ? row.longitude : (state.currentLocation ? state.currentLocation.lng : ''),
+        row.altitude !== null && row.altitude !== undefined ? row.altitude : (state.currentAltitude !== null ? state.currentAltitude : ''),
+        row.heading !== null && row.heading !== undefined ? row.heading : (state.currentHeading !== null ? state.currentHeading : ''),
         row.accuracy !== null && row.accuracy !== undefined ? row.accuracy : (state.currentLocation ? state.currentLocation.accuracy : 5),
         row.speed !== null && row.speed !== undefined ? row.speed : (state.currentLocation ? state.currentLocation.speed : 0),
         `"${(row.ssid || '').replace(/"/g, '""')}"`,
         row.bssid || '',
         row.rssi,
         row.user_label_mode || state.selectedMode,
+        row.predicted_mode || state.predictedMode || '',
+        `"${(row.attitude || state.currentAttitude || '').replace(/"/g, '""')}"`,
         `"${(row.note || state.tripNote || '').replace(/"/g, '""')}"`
       ];
       csv += line.join(',') + '\n';
@@ -649,5 +761,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // Boot Application
   detectOS();
   startGeoTracking();
+  startOrientationTracking();
   startTelemetryEngine();
 });

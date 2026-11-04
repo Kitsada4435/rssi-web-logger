@@ -45,18 +45,23 @@ function doPost(e) {
           row.trip_id || "TRIP",
           row.latitude !== null && row.latitude !== undefined ? row.latitude : "",
           row.longitude !== null && row.longitude !== undefined ? row.longitude : "",
+          row.altitude !== null && row.altitude !== undefined ? row.altitude : "",
+          row.heading !== null && row.heading !== undefined ? row.heading : "",
           row.accuracy !== null && row.accuracy !== undefined ? row.accuracy : "",
           row.speed !== null && row.speed !== undefined ? row.speed : "",
           row.ssid || "",
           row.bssid || "",
           row.rssi !== null && row.rssi !== undefined ? row.rssi : "",
-          row.user_label_mode || "walk"
+          row.user_label_mode || "walk",
+          row.predicted_mode || "",
+          row.attitude || "",
+          row.note || ""
         ]);
       });
 
       if (sheetData.length > 0) {
         const lastRow = sheet.getLastRow();
-        sheet.getRange(lastRow + 1, 1, sheetData.length, 11).setValues(sheetData);
+        sheet.getRange(lastRow + 1, 1, sheetData.length, 16).setValues(sheetData);
         rowsAdded = sheetData.length;
       }
 
@@ -78,12 +83,17 @@ function doPost(e) {
         data.trip_id || "TRIP",
         data.latitude !== null && data.latitude !== undefined ? data.latitude : (data.lat || ""),
         data.longitude !== null && data.longitude !== undefined ? data.longitude : (data.lng || ""),
+        data.altitude !== null && data.altitude !== undefined ? data.altitude : (data.alt || ""),
+        data.heading !== null && data.heading !== undefined ? data.heading : (data.bearing || ""),
         data.accuracy || 5,
         data.speed || 0,
         data.ssid || "",
         data.bssid || "",
         data.rssi !== null && data.rssi !== undefined ? data.rssi : -99,
-        data.user_label_mode || data.mode || "walk"
+        data.user_label_mode || data.mode || "walk",
+        data.predicted_mode || "",
+        data.attitude || "",
+        data.note || ""
       ];
       sheet.appendRow(row);
       rowsAdded = 1;
@@ -141,14 +151,19 @@ function getOrCreateSpreadsheet(folder, sheetName) {
       "trip_id",
       "latitude",
       "longitude",
+      "altitude",
+      "heading",
       "accuracy",
       "speed",
       "ssid",
       "bssid",
       "rssi",
-      "user_label_mode"
+      "user_label_mode",
+      "predicted_mode",
+      "attitude",
+      "note"
     ]);
-    ws.getRange("A1:K1").setFontWeight("bold").setBackground("#0f172a").setFontColor("#38bdf8");
+    ws.getRange("A1:P1").setFontWeight("bold").setBackground("#0f172a").setFontColor("#38bdf8");
     ws.setFrozenRows(1);
   }
   return ss.getActiveSheet();
@@ -156,7 +171,7 @@ function getOrCreateSpreadsheet(folder, sheetName) {
 
 // Helper: แปลงข้อมูลเป็น CSV Text
 function generateCsvString(logs) {
-  const headers = ["timestamp","participant_id","trip_id","latitude","longitude","accuracy","speed","ssid","bssid","rssi","user_label_mode"];
+  const headers = ["timestamp","participant_id","trip_id","latitude","longitude","altitude","heading","accuracy","speed","ssid","bssid","rssi","user_label_mode","predicted_mode","attitude","note"];
   let csv = headers.join(",") + "\n";
   logs.forEach(row => {
     const line = [
@@ -165,12 +180,17 @@ function generateCsvString(logs) {
       row.trip_id || "",
       row.latitude !== null && row.latitude !== undefined ? row.latitude : "",
       row.longitude !== null && row.longitude !== undefined ? row.longitude : "",
+      row.altitude !== null && row.altitude !== undefined ? row.altitude : "",
+      row.heading !== null && row.heading !== undefined ? row.heading : "",
       row.accuracy !== null && row.accuracy !== undefined ? row.accuracy : "",
       row.speed !== null && row.speed !== undefined ? row.speed : "",
       `"${(row.ssid || "").replace(/"/g, '""')}"`,
       row.bssid || "",
       row.rssi !== null && row.rssi !== undefined ? row.rssi : "",
-      row.user_label_mode || ""
+      row.user_label_mode || "",
+      row.predicted_mode || "",
+      `"${(row.attitude || "").replace(/"/g, '""')}"`,
+      `"${(row.note || "").replace(/"/g, '""')}"`
     ];
     csv += line.join(",") + "\n";
   });

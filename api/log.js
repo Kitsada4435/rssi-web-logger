@@ -101,6 +101,27 @@ function recordTelemetry(query) {
   const tripId = query.trip_id || 'TRIP-DEFAULT';
   const note = query.note || query.notes || query.location_note || '';
 
+  // Kinematics & Orientation (Altitude, Heading, Attitude)
+  const rawAlt = query.altitude !== undefined ? query.altitude : query.alt;
+  const altitude = rawAlt !== undefined && rawAlt !== '' ? parseFloat(rawAlt) : null;
+
+  const rawHeading = query.heading !== undefined ? query.heading : query.bearing;
+  const heading = rawHeading !== undefined && rawHeading !== '' ? parseFloat(rawHeading) : null;
+
+  let attitude = query.attitude || '';
+  if (!attitude && (query.pitch !== undefined || query.roll !== undefined)) {
+    attitude = `P:${query.pitch || 0}/R:${query.roll || 0}`;
+  }
+
+  // Predicted Motion Mode (Activity recognition from mobile or speed heuristic)
+  let predictedMode = query.predicted_mode || query.activity_recognition_mode || query.activity || query.motion || null;
+  if (!predictedMode) {
+    if (speed < 1.0) predictedMode = 'still';
+    else if (speed <= 6.5) predictedMode = 'walk';
+    else if (speed <= 18.0) predictedMode = 'run';
+    else predictedMode = 'vehicle';
+  }
+
   const entry = {
     id: memoryStore.length + 1,
     timestamp: new Date().toISOString(),
@@ -111,9 +132,13 @@ function recordTelemetry(query) {
     rssi: isNaN(rssi) ? -99 : rssi,
     latitude: lat,
     longitude: lng,
+    altitude: isNaN(altitude) ? null : altitude,
+    heading: isNaN(heading) ? null : heading,
     speed: speed,
     accuracy: accuracy,
     user_label_mode: mode,
+    predicted_mode: predictedMode,
+    attitude: attitude,
     note: note
   };
 

@@ -1,7 +1,7 @@
 const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbwry_goxlTURpP6xBBi6jvTBfGNrhppeS4xQtPEoBVae52dNa0DnfblQgJDzj-TE_Dr/exec';
 
 function generateCsvString(logs, participantId, tripId) {
-  const headers = ['timestamp','participant_id','trip_id','latitude','longitude','accuracy','speed','ssid','bssid','rssi','user_label_mode','note'];
+  const headers = ['timestamp','participant_id','trip_id','latitude','longitude','altitude','heading','accuracy','speed','ssid','bssid','rssi','user_label_mode','predicted_mode','attitude','note'];
   let csv = headers.join(',') + '\n';
   logs.forEach(row => {
     const line = [
@@ -10,12 +10,16 @@ function generateCsvString(logs, participantId, tripId) {
       row.trip_id || tripId,
       row.latitude !== null && row.latitude !== undefined ? row.latitude : '',
       row.longitude !== null && row.longitude !== undefined ? row.longitude : '',
+      row.altitude !== null && row.altitude !== undefined ? row.altitude : '',
+      row.heading !== null && row.heading !== undefined ? row.heading : '',
       row.accuracy !== null && row.accuracy !== undefined ? row.accuracy : '',
       row.speed !== null && row.speed !== undefined ? row.speed : '',
       `"${(row.ssid || '').replace(/"/g, '""')}"`,
       row.bssid || '',
       row.rssi !== null && row.rssi !== undefined ? row.rssi : '',
       row.user_label_mode || 'walk',
+      row.predicted_mode || '',
+      `"${(row.attitude || '').replace(/"/g, '""')}"`,
       `"${(row.note || '').replace(/"/g, '""')}"`
     ];
     csv += line.join(',') + '\n';
