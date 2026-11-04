@@ -429,7 +429,8 @@ body {
   gap: 3px;
 }
 
-.mode-chip {
+.mode-chip,
+.pos-chip {
   background: transparent;
   border: none;
   border-radius: var(--radius-xs);
@@ -442,7 +443,8 @@ body {
   text-align: center;
 }
 
-.mode-chip.active {
+.mode-chip.active,
+.pos-chip.active {
   background: rgba(255, 255, 255, 0.12);
   color: #ffffff;
 }

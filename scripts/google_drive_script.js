@@ -39,29 +39,43 @@ function doPost(e) {
       const sheetData = [];
 
       logs.forEach(row => {
+        const tUtc = row.t_utc_ms || (row.timestamp ? Date.parse(row.timestamp) : Date.now());
         sheetData.push([
-          row.timestamp || new Date().toISOString(),
+          tUtc,
+          row.t_mono_ns !== null && row.t_mono_ns !== undefined ? row.t_mono_ns : "",
+          row.timestamp || new Date(tUtc).toISOString(),
+          row.session_id || row.trip_id || "TRIP",
           row.participant_id || "ANON",
-          row.trip_id || "TRIP",
-          row.latitude !== null && row.latitude !== undefined ? row.latitude : "",
-          row.longitude !== null && row.longitude !== undefined ? row.longitude : "",
+          row.platform || "web",
+          row.device_model || "",
+          row.os_version || "",
+          row.lat !== null && row.lat !== undefined ? row.lat : (row.latitude !== null && row.latitude !== undefined ? row.latitude : ""),
+          row.lon !== null && row.lon !== undefined ? row.lon : (row.longitude !== null && row.longitude !== undefined ? row.longitude : ""),
           row.altitude !== null && row.altitude !== undefined ? row.altitude : "",
           row.heading !== null && row.heading !== undefined ? row.heading : "",
-          row.accuracy !== null && row.accuracy !== undefined ? row.accuracy : "",
           row.speed !== null && row.speed !== undefined ? row.speed : "",
-          row.ssid || "",
-          row.bssid || "",
-          row.rssi !== null && row.rssi !== undefined ? row.rssi : "",
-          row.user_label_mode || "walk",
-          row.predicted_mode || "",
+          row.accuracy !== null && row.accuracy !== undefined ? row.accuracy : "",
+          row.accel_x !== null && row.accel_x !== undefined ? row.accel_x : "",
+          row.accel_y !== null && row.accel_y !== undefined ? row.accel_y : "",
+          row.accel_z !== null && row.accel_z !== undefined ? row.accel_z : "",
+          row.gyro_x !== null && row.gyro_x !== undefined ? row.gyro_x : "",
+          row.gyro_y !== null && row.gyro_y !== undefined ? row.gyro_y : "",
+          row.gyro_z !== null && row.gyro_z !== undefined ? row.gyro_z : "",
           row.attitude || "",
+          row.bssid || "",
+          row.ssid || "",
+          row.rssi_raw !== null && row.rssi_raw !== undefined ? row.rssi_raw : (row.rssi !== null && row.rssi !== undefined ? row.rssi : ""),
+          row.rssi_source || "web_telemetry",
+          row.user_label_mode || "walk",
+          row.activity_recognition_mode || row.predicted_mode || "still",
+          row.phone_position || "pocket",
           row.note || ""
         ]);
       });
 
       if (sheetData.length > 0) {
         const lastRow = sheet.getLastRow();
-        sheet.getRange(lastRow + 1, 1, sheetData.length, 16).setValues(sheetData);
+        sheet.getRange(lastRow + 1, 1, sheetData.length, 29).setValues(sheetData);
         rowsAdded = sheetData.length;
       }
 
@@ -77,22 +91,36 @@ function doPost(e) {
 
     } else {
       // กรณีส่งทีละจุด Real-time จาก API / Shortcuts / Android
+      const tUtc = data.t_utc_ms || (data.timestamp ? Date.parse(data.timestamp) : Date.now());
       const row = [
-        data.timestamp || new Date().toISOString(),
+        tUtc,
+        data.t_mono_ns !== null && data.t_mono_ns !== undefined ? data.t_mono_ns : "",
+        data.timestamp || new Date(tUtc).toISOString(),
+        data.session_id || data.trip_id || "TRIP",
         data.participant_id || "ANON",
-        data.trip_id || "TRIP",
-        data.latitude !== null && data.latitude !== undefined ? data.latitude : (data.lat || ""),
-        data.longitude !== null && data.longitude !== undefined ? data.longitude : (data.lng || ""),
+        data.platform || "web",
+        data.device_model || "",
+        data.os_version || "",
+        data.lat !== null && data.lat !== undefined ? data.lat : (data.latitude !== null && data.latitude !== undefined ? data.latitude : ""),
+        data.lon !== null && data.lon !== undefined ? data.lon : (data.longitude !== null && data.longitude !== undefined ? data.longitude : ""),
         data.altitude !== null && data.altitude !== undefined ? data.altitude : (data.alt || ""),
         data.heading !== null && data.heading !== undefined ? data.heading : (data.bearing || ""),
-        data.accuracy || 5,
         data.speed || 0,
-        data.ssid || "",
-        data.bssid || "",
-        data.rssi !== null && data.rssi !== undefined ? data.rssi : -99,
-        data.user_label_mode || data.mode || "walk",
-        data.predicted_mode || "",
+        data.accuracy || 5,
+        data.accel_x !== null && data.accel_x !== undefined ? data.accel_x : "",
+        data.accel_y !== null && data.accel_y !== undefined ? data.accel_y : "",
+        data.accel_z !== null && data.accel_z !== undefined ? data.accel_z : "",
+        data.gyro_x !== null && data.gyro_x !== undefined ? data.gyro_x : "",
+        data.gyro_y !== null && data.gyro_y !== undefined ? data.gyro_y : "",
+        data.gyro_z !== null && data.gyro_z !== undefined ? data.gyro_z : "",
         data.attitude || "",
+        data.bssid || "",
+        data.ssid || "",
+        data.rssi_raw !== null && data.rssi_raw !== undefined ? data.rssi_raw : (data.rssi !== null && data.rssi !== undefined ? data.rssi : -99),
+        data.rssi_source || "web_telemetry",
+        data.user_label_mode || data.mode || "walk",
+        data.activity_recognition_mode || data.predicted_mode || "still",
+        data.phone_position || "pocket",
         data.note || ""
       ];
       sheet.appendRow(row);
@@ -146,24 +174,37 @@ function getOrCreateSpreadsheet(folder, sheetName) {
     // สร้าง Header แถวแรก
     const ws = ss.getActiveSheet();
     ws.appendRow([
+      "t_utc_ms",
+      "t_mono_ns",
       "timestamp",
+      "session_id",
       "participant_id",
-      "trip_id",
-      "latitude",
-      "longitude",
+      "platform",
+      "device_model",
+      "os_version",
+      "lat",
+      "lon",
       "altitude",
       "heading",
-      "accuracy",
       "speed",
-      "ssid",
-      "bssid",
-      "rssi",
-      "user_label_mode",
-      "predicted_mode",
+      "accuracy",
+      "accel_x",
+      "accel_y",
+      "accel_z",
+      "gyro_x",
+      "gyro_y",
+      "gyro_z",
       "attitude",
+      "bssid",
+      "ssid",
+      "rssi_raw",
+      "rssi_source",
+      "user_label_mode",
+      "activity_recognition_mode",
+      "phone_position",
       "note"
     ]);
-    ws.getRange("A1:P1").setFontWeight("bold").setBackground("#0f172a").setFontColor("#38bdf8");
+    ws.getRange("A1:AC1").setFontWeight("bold").setBackground("#0f172a").setFontColor("#38bdf8");
     ws.setFrozenRows(1);
   }
   return ss.getActiveSheet();
@@ -171,25 +212,69 @@ function getOrCreateSpreadsheet(folder, sheetName) {
 
 // Helper: แปลงข้อมูลเป็น CSV Text
 function generateCsvString(logs) {
-  const headers = ["timestamp","participant_id","trip_id","latitude","longitude","altitude","heading","accuracy","speed","ssid","bssid","rssi","user_label_mode","predicted_mode","attitude","note"];
+  const headers = [
+    "t_utc_ms",
+    "t_mono_ns",
+    "timestamp",
+    "session_id",
+    "participant_id",
+    "platform",
+    "device_model",
+    "os_version",
+    "lat",
+    "lon",
+    "altitude",
+    "heading",
+    "speed",
+    "accuracy",
+    "accel_x",
+    "accel_y",
+    "accel_z",
+    "gyro_x",
+    "gyro_y",
+    "gyro_z",
+    "attitude",
+    "bssid",
+    "ssid",
+    "rssi_raw",
+    "rssi_source",
+    "user_label_mode",
+    "activity_recognition_mode",
+    "phone_position",
+    "note"
+  ];
   let csv = headers.join(",") + "\n";
   logs.forEach(row => {
+    const tUtc = row.t_utc_ms || (row.timestamp ? Date.parse(row.timestamp) : Date.now());
     const line = [
-      row.timestamp || "",
-      row.participant_id || "",
-      row.trip_id || "",
-      row.latitude !== null && row.latitude !== undefined ? row.latitude : "",
-      row.longitude !== null && row.longitude !== undefined ? row.longitude : "",
+      tUtc,
+      row.t_mono_ns !== null && row.t_mono_ns !== undefined ? row.t_mono_ns : "",
+      row.timestamp || new Date(tUtc).toISOString(),
+      row.session_id || row.trip_id || "TRIP",
+      row.participant_id || "ANON",
+      row.platform || "web",
+      `"${(row.device_model || "").replace(/"/g, '""')}"`,
+      `"${(row.os_version || "").replace(/"/g, '""')}"`,
+      row.lat !== null && row.lat !== undefined ? row.lat : (row.latitude !== null && row.latitude !== undefined ? row.latitude : ""),
+      row.lon !== null && row.lon !== undefined ? row.lon : (row.longitude !== null && row.longitude !== undefined ? row.longitude : ""),
       row.altitude !== null && row.altitude !== undefined ? row.altitude : "",
       row.heading !== null && row.heading !== undefined ? row.heading : "",
-      row.accuracy !== null && row.accuracy !== undefined ? row.accuracy : "",
       row.speed !== null && row.speed !== undefined ? row.speed : "",
-      `"${(row.ssid || "").replace(/"/g, '""')}"`,
-      row.bssid || "",
-      row.rssi !== null && row.rssi !== undefined ? row.rssi : "",
-      row.user_label_mode || "",
-      row.predicted_mode || "",
+      row.accuracy !== null && row.accuracy !== undefined ? row.accuracy : "",
+      row.accel_x !== null && row.accel_x !== undefined ? row.accel_x : "",
+      row.accel_y !== null && row.accel_y !== undefined ? row.accel_y : "",
+      row.accel_z !== null && row.accel_z !== undefined ? row.accel_z : "",
+      row.gyro_x !== null && row.gyro_x !== undefined ? row.gyro_x : "",
+      row.gyro_y !== null && row.gyro_y !== undefined ? row.gyro_y : "",
+      row.gyro_z !== null && row.gyro_z !== undefined ? row.gyro_z : "",
       `"${(row.attitude || "").replace(/"/g, '""')}"`,
+      row.bssid || "",
+      `"${(row.ssid || "").replace(/"/g, '""')}"`,
+      row.rssi_raw !== null && row.rssi_raw !== undefined ? row.rssi_raw : (row.rssi !== null && row.rssi !== undefined ? row.rssi : ""),
+      row.rssi_source || "web_telemetry",
+      row.user_label_mode || "walk",
+      row.activity_recognition_mode || row.predicted_mode || "still",
+      row.phone_position || "pocket",
       `"${(row.note || "").replace(/"/g, '""')}"`
     ];
     csv += line.join(",") + "\n";

@@ -147,26 +147,39 @@ flowchart LR
 
 ## 5. โครงสร้างข้อมูล (Data Schema Specification)
 
-ไฟล์ CSV ทุกไฟล์ที่ดาวน์โหลดจากระบบ หรือถูกอัปโหลดขึ้น Google Drive มีโครงสร้างคอลัมน์มาตรฐาน 16 คอลัมน์ดังนี้:
+ไฟล์ CSV ทุกไฟล์ที่ดาวน์โหลดจากระบบ หรือถูกอัปโหลดขึ้น Google Drive ใช้โครงสร้างมาตรฐานร่วม (Unified Master Schema) 29 คอลัมน์ที่รองรับทั้ง Web Dashboard, iOS Shortcut และ Android Companion App อย่างสมบูรณ์:
 
 | ลำดับ | ชื่อคอลัมน์ (Column) | ประเภทข้อมูล | ตัวอย่างข้อมูล | คำอธิบาย |
 | :---: | :--- | :---: | :--- | :--- |
-| 1 | `timestamp` | ISO 8601 String | `2026-11-02T12:47:29.387Z` | วันและเวลาที่บันทึกข้อมูลพิกัดระดับมิลลิวินาที |
-| 2 | `participant_id` | String | `IOS-7A2B` หรือ `iPhone-Kitsada` | รหัสประจำเครื่อง หรือรหัสที่ผู้ใช้กำหนด |
-| 3 | `trip_id` | String | `TRIP-20261102-A9F2` | รหัสรอบการเดินทางที่ไม่ซ้ำกันในแต่ละครั้ง |
-| 4 | `latitude` | Float | `18.79524` | ละติจูดพิกัดดาวเทียม GPS |
-| 5 | `longitude` | Float | `98.95211` | ลองจิจูดพิกัดดาวเทียม GPS |
-| 6 | `altitude` | Float (เมตร) | `312.4` | ความสูงจากระดับน้ำทะเล (Altitude จาก GPS) |
-| 7 | `heading` | Float (องศา) | `185.0` | ทิศทางการเคลื่อนที่หรือเข็มทิศ (0-360 องศา) |
-| 8 | `accuracy` | Float (เมตร) | `4.0` | รัศมีความคลาดเคลื่อนของ GPS (ยิ่งน้อยยิ่งแม่นยำ) |
-| 9 | `speed` | Float (km/h) | `1.4` | ความเร็วในการเคลื่อนที่ขณะบันทึกจุดนั้นๆ |
-| 10 | `ssid` | String | `Faculty-WiFi_5G` | ชื่อเครือข่าย Wi-Fi ที่อุปกรณ์เชื่อมต่ออยู่ |
-| 11 | `bssid` | String | `00:1A:2B:3C:4D:5E` | MAC Address ของ Access Point ตัวที่จับสัญญาณ |
-| 12 | `rssi` | Integer (dBm) | `-58` | ค่าความแรงสัญญาณ Wi-Fi (ระดับ -30 ถึง -99 dBm) |
-| 13 | `user_label_mode` | String | `walk`, `bike`, `moto`, `car` | โหมดการเดินทางที่ผู้ใช้กดเลือกด้วยตนเอง |
-| 14 | `predicted_mode` | String | `still`, `walk`, `run`, `vehicle` | โหมดการเคลื่อนไหวที่ระบบตรวจจับหรือคำนวณอัตโนมัติ |
-| 15 | `attitude` | String | `P:12° / R:-4°` | มุมเอียงของอุปกรณ์ Pitch/Roll จาก Orientation Sensor |
-| 16 | `note` | String | `อาคารวิศวะ ชั้น 3, โซนแล็บ` | รายละเอียดสถานที่หรือจุดสังเกตเพิ่มเติม |
+| 1 | `t_utc_ms` | Integer (Epoch ms) | `1793766101811` | เวลา Unix Epoch มิลลิวินาทีสำหรับ Synchronize ข้อมูล |
+| 2 | `t_mono_ns` | Integer (Monotonic ns) | `306364989625` | เวลา Monotonic ระดับนาโนวินาทีจากเซนเซอร์ฮาร์ดแวร์ |
+| 3 | `timestamp` | ISO 8601 String | `2026-11-04T11:21:41.811Z` | วันและเวลามาตรฐานสากล |
+| 4 | `session_id` | String | `TRIP-20261104-A9F2` | รหัสรอบการเก็บข้อมูล (Trip / Session ID) |
+| 5 | `participant_id` | String | `680631034` หรือ `IOS-7A2B` | รหัสผู้สำรวจหรือรหัสฮาร์ดแวร์ประจำเครื่อง |
+| 6 | `platform` | String | `android`, `ios`, `web` | ระบบปฏิบัติการของอุปกรณ์ |
+| 7 | `device_model` | String | `samsung SM-S948B`, `iPhone` | รุ่นของฮาร์ดแวร์โทรศัพท์ |
+| 8 | `os_version` | String | `Android 17`, `iOS 18.1` | เวอร์ชันระบบปฏิบัติการ |
+| 9 | `lat` | Float | `18.7954698` | ละติจูดพิกัดดาวเทียม GPS |
+| 10 | `lon` | Float | `98.9528959` | ลองจิจูดพิกัดดาวเทียม GPS |
+| 11 | `altitude` | Float (เมตร) | `312.4` | ความสูงจากระดับน้ำทะเล (GPS Altitude) |
+| 12 | `heading` | Float (องศา) | `185.0` | ทิศทางองศาเข็มทิศ (0-360 องศา จาก True North) |
+| 13 | `speed` | Float | `0.0997` (m/s) หรือ `1.4` | ความเร็วในการเคลื่อนที่ |
+| 14 | `accuracy` | Float (เมตร) | `7.98` | รัศมีความคลาดเคลื่อนของ GPS (ยิ่งน้อยยิ่งแม่นยำ) |
+| 15 | `accel_x` | Float (m/s²) | `-1.1198` | ความเร่งแกน X (Accelerometer รวมแรงโน้มถ่วง) |
+| 16 | `accel_y` | Float (m/s²) | `3.3403` | ความเร่งแกน Y (Accelerometer รวมแรงโน้มถ่วง) |
+| 17 | `accel_z` | Float (m/s²) | `9.8751` | ความเร่งแกน Z (Accelerometer รวมแรงโน้มถ่วง) |
+| 18 | `gyro_x` | Float (rad/s) | `0.0629` | อัตราการหมุนรอบแกน X (Gyroscope) |
+| 19 | `gyro_y` | Float (rad/s) | `-0.2061` | อัตราการหมุนรอบแกน Y (Gyroscope) |
+| 20 | `gyro_z` | Float (rad/s) | `0.0355` | อัตราการหมุนรอบแกน Z (Gyroscope) |
+| 21 | `attitude` | String | `P:12° / R:-4°` | มุมเอียงของตัวเครื่อง (Pitch / Roll) |
+| 22 | `bssid` | String | `04:5f:b9:e4:f1:4a` | MAC Address ของ Wi-Fi Access Point |
+| 23 | `ssid` | String | `@JumboPlus5GHz` | ชื่อเครือข่าย Wi-Fi |
+| 24 | `rssi_raw` | Float (dBm) | `-40.0` | ค่าความแรงสัญญาณดิบ Wi-Fi RSSI |
+| 25 | `rssi_source` | String | `wifimanager`, `apple_shortcut` | ไดรเวอร์หรือช่องทางที่ได้ค่า RSSI |
+| 26 | `user_label_mode` | String | `walk`, `bike`, `motorcycle`, `car` | โหมดการเดินทางที่ผู้สำรวจเลือกด้วยตนเอง |
+| 27 | `activity_recognition_mode` | String | `still`, `walk`, `run`, `vehicle` | โหมดการเคลื่อนไหวที่ระบบ OS/เซนเซอร์ตรวจจับอัตโนมัติ |
+| 28 | `phone_position` | String | `pocket`, `hand`, `bag` | ลักษณะการพกพาโทรศัพท์ขณะเก็บข้อมูล |
+| 29 | `note` | String | `อาคารวิศวะ ชั้น 3, โซนแล็บ` | บันทึกช่วยจำสถานที่หรือจุดสังเกตเพิ่มเติม |
 
 ---
 

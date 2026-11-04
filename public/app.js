@@ -74,11 +74,17 @@ document.addEventListener('DOMContentLoaded', () => {
     gdriveWebhook: localStorage.getItem('rssi_gdrive_webhook') || 'https://script.google.com/macros/s/AKfycbwry_goxlTURpP6xBBi6jvTBfGNrhppeS4xQtPEoBVae52dNa0DnfblQgJDzj-TE_Dr/exec',
     autoSyncGdrive: localStorage.getItem('rssi_autosync_gdrive') !== 'false',
     selectedMode: 'walk',
+    phonePosition: 'pocket',
     predictedMode: 'still',
+    platform: 'web',
+    deviceModel: 'Generic Device',
+    osVersion: 'Web',
     currentLocation: null,
     currentAltitude: null,
     currentHeading: null,
     currentAttitude: '',
+    currentAccel: { x: 0, y: 0, z: 9.8 },
+    currentGyro: { x: 0, y: 0, z: 0 },
     watchId: null,
     wakeLock: null,
     logs: []
@@ -106,6 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
     gpsSpeed: document.getElementById('gps-speed'),
     gpsAltHeading: document.getElementById('gps-alt-heading'),
     predictedModeVal: document.getElementById('predicted-mode-val'),
+    imuAccelVal: document.getElementById('imu-accel-val'),
     deviceAttitudeVal: document.getElementById('device-attitude-val'),
     totalSamples: document.getElementById('total-samples'),
     avgRssi: document.getElementById('avg-rssi'),
@@ -122,7 +129,8 @@ document.addEventListener('DOMContentLoaded', () => {
     syncToast: document.getElementById('sync-toast'),
     syncToastIcon: document.getElementById('sync-toast-icon'),
     syncToastText: document.getElementById('sync-toast-text'),
-    modeBtns: document.querySelectorAll('.mode-chip')
+    modeBtns: document.querySelectorAll('.mode-chip'),
+    posBtns: document.querySelectorAll('.pos-chip')
   };
 
   // 3. Screen Keep-Awake (WakeLock API for iOS & Android)
@@ -147,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // 4. Kinematics & Orientation Tracking
+  // 4. Kinematics, IMU & Orientation Tracking
   function updateKinematicsUI() {
     const altStr = state.currentAltitude !== null && state.currentAltitude !== undefined ? `${state.currentAltitude} m` : '-- m';
     const headStr = state.currentHeading !== null && state.currentHeading !== undefined ? `${state.currentHeading}°` : '--°';
@@ -166,6 +174,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (el.deviceAttitudeVal) {
       el.deviceAttitudeVal.textContent = state.currentAttitude || '--';
     }
+
+    if (el.imuAccelVal && state.currentAccel) {
+      el.imuAccelVal.textContent = `${state.currentAccel.x}, ${state.currentAccel.y}, ${state.currentAccel.z}`;
+    }
   }
 
   function handleOrientation(e) {
@@ -181,7 +193,24 @@ document.addEventListener('DOMContentLoaded', () => {
     updateKinematicsUI();
   }
 
-  function startOrientationTracking() {
+  function handleMotion(e) {
+    if (e.accelerationIncludingGravity) {
+      const ax = e.accelerationIncludingGravity.x !== null ? Math.round(e.accelerationIncludingGravity.x * 100) / 100 : 0;
+      const ay = e.accelerationIncludingGravity.y !== null ? Math.round(e.accelerationIncludingGravity.y * 100) / 100 : 0;
+      const az = e.accelerationIncludingGravity.z !== null ? Math.round(e.accelerationIncludingGravity.z * 100) / 100 : 9.8;
+      state.currentAccel = { x: ax, y: ay, z: az };
+    }
+    if (e.rotationRate) {
+      const deg2rad = Math.PI / 180;
+      const gx = e.rotationRate.alpha !== null ? Math.round(e.rotationRate.alpha * deg2rad * 1000) / 1000 : 0;
+      const gy = e.rotationRate.beta !== null ? Math.round(e.rotationRate.beta * deg2rad * 1000) / 1000 : 0;
+      const gz = e.rotationRate.gamma !== null ? Math.round(e.rotationRate.gamma * deg2rad * 1000) / 1000 : 0;
+      state.currentGyro = { x: gx, y: gy, z: gz };
+    }
+    updateKinematicsUI();
+  }
+
+  function startMotionAndOrientationTracking() {
     if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
       window._requestOrientationPermission = () => {
         DeviceOrientationEvent.requestPermission().then(res => {
@@ -189,9 +218,20 @@ document.addEventListener('DOMContentLoaded', () => {
             window.addEventListener('deviceorientation', handleOrientation, true);
           }
         }).catch(() => {});
+
+        if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+          DeviceMotionEvent.requestPermission().then(res => {
+            if (res === 'granted') {
+              window.addEventListener('devicemotion', handleMotion, true);
+            }
+          }).catch(() => {});
+        } else {
+          window.addEventListener('devicemotion', handleMotion, true);
+        }
       };
     } else {
       window.addEventListener('deviceorientation', handleOrientation, true);
+      window.addEventListener('devicemotion', handleMotion, true);
     }
   }
 
@@ -247,8 +287,42 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!entry.trip_id || entry.trip_id === 'TRIP-DEFAULT') {
       entry.trip_id = state.tripId;
     }
+    entry.session_id = entry.session_id || entry.trip_id;
+
     if (!entry.note && state.tripNote) {
       entry.note = state.tripNote;
+    }
+
+    // Platform and model fallback
+    entry.platform = entry.platform || state.platform;
+    entry.device_model = entry.device_model || state.deviceModel;
+    entry.os_version = entry.os_version || state.osVersion;
+
+    // Timing
+    if (!entry.t_utc_ms) {
+      entry.t_utc_ms = entry.timestamp ? Date.parse(entry.timestamp) : Date.now();
+    }
+    if (!entry.t_mono_ns) {
+      entry.t_mono_ns = Math.round(performance.now() * 1000000);
+    }
+
+    // Lat / Lon normalization
+    if (entry.lat !== undefined && entry.lat !== null) {
+      entry.latitude = entry.lat;
+    } else if (entry.latitude !== undefined && entry.latitude !== null) {
+      entry.lat = entry.latitude;
+    } else if (state.currentLocation) {
+      entry.lat = state.currentLocation.lat;
+      entry.latitude = state.currentLocation.lat;
+    }
+
+    if (entry.lon !== undefined && entry.lon !== null) {
+      entry.longitude = entry.lon;
+    } else if (entry.longitude !== undefined && entry.longitude !== null) {
+      entry.lon = entry.longitude;
+    } else if (state.currentLocation) {
+      entry.lon = state.currentLocation.lng;
+      entry.longitude = state.currentLocation.lng;
     }
 
     // Kinematics fallback
@@ -264,10 +338,16 @@ document.addEventListener('DOMContentLoaded', () => {
       entry.heading = state.currentHeading;
     }
 
-    if (entry.predicted_mode) {
+    // Activity Recognition
+    if (entry.activity_recognition_mode) {
+      state.predictedMode = entry.activity_recognition_mode;
+      entry.predicted_mode = entry.activity_recognition_mode;
+    } else if (entry.predicted_mode) {
       state.predictedMode = entry.predicted_mode;
+      entry.activity_recognition_mode = entry.predicted_mode;
     } else {
       entry.predicted_mode = state.predictedMode;
+      entry.activity_recognition_mode = state.predictedMode;
     }
 
     if (entry.attitude) {
@@ -275,6 +355,26 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       entry.attitude = state.currentAttitude;
     }
+
+    // IMU Fallback
+    if (entry.accel_x === undefined || entry.accel_x === null) {
+      entry.accel_x = state.currentAccel ? state.currentAccel.x : null;
+      entry.accel_y = state.currentAccel ? state.currentAccel.y : null;
+      entry.accel_z = state.currentAccel ? state.currentAccel.z : null;
+    }
+    if (entry.gyro_x === undefined || entry.gyro_x === null) {
+      entry.gyro_x = state.currentGyro ? state.currentGyro.x : null;
+      entry.gyro_y = state.currentGyro ? state.currentGyro.y : null;
+      entry.gyro_z = state.currentGyro ? state.currentGyro.z : null;
+    }
+
+    // RSSI & Source
+    entry.rssi_raw = entry.rssi_raw !== undefined ? entry.rssi_raw : entry.rssi;
+    entry.rssi = Math.round(entry.rssi_raw !== undefined ? entry.rssi_raw : -99);
+    entry.rssi_source = entry.rssi_source || (entry.platform === 'android' ? 'wifimanager' : 'apple_shortcut');
+
+    // Phone position
+    entry.phone_position = entry.phone_position || state.phonePosition;
 
     updateKinematicsUI();
     state.logs.push(entry);
@@ -426,25 +526,46 @@ document.addEventListener('DOMContentLoaded', () => {
       el.btnSyncGdrive.innerHTML = '<span class="icon">⏳</span><span>กำลังส่ง...</span>';
     }
 
-    // Map logs ensuring all metrics & custom participant ID are included
-    const payloadLogs = state.logs.map(row => ({
-      timestamp: row.timestamp || new Date().toISOString(),
-      participant_id: state.participantId,
-      trip_id: state.tripId,
-      latitude: row.latitude !== null && row.latitude !== undefined ? row.latitude : (state.currentLocation ? state.currentLocation.lat : ''),
-      longitude: row.longitude !== null && row.longitude !== undefined ? row.longitude : (state.currentLocation ? state.currentLocation.lng : ''),
-      altitude: row.altitude !== null && row.altitude !== undefined ? row.altitude : (state.currentAltitude !== null ? state.currentAltitude : ''),
-      heading: row.heading !== null && row.heading !== undefined ? row.heading : (state.currentHeading !== null ? state.currentHeading : ''),
-      accuracy: row.accuracy !== null && row.accuracy !== undefined ? row.accuracy : (state.currentLocation ? state.currentLocation.accuracy : 5),
-      speed: row.speed !== null && row.speed !== undefined ? row.speed : (state.currentLocation ? state.currentLocation.speed : 0),
-      ssid: row.ssid || '',
-      bssid: row.bssid || '',
-      rssi: row.rssi,
-      user_label_mode: row.user_label_mode || state.selectedMode,
-      predicted_mode: row.predicted_mode || state.predictedMode || '',
-      attitude: row.attitude || state.currentAttitude || '',
-      note: row.note || state.tripNote || ''
-    }));
+    // Map logs ensuring all 29 unified metrics & custom participant ID are included
+    const payloadLogs = state.logs.map(row => {
+      const tUtc = row.t_utc_ms || (row.timestamp ? Date.parse(row.timestamp) : Date.now());
+      return {
+        t_utc_ms: tUtc,
+        t_mono_ns: row.t_mono_ns !== null && row.t_mono_ns !== undefined ? row.t_mono_ns : Math.round(performance.now() * 1000000),
+        timestamp: row.timestamp || new Date(tUtc).toISOString(),
+        session_id: state.tripId,
+        trip_id: state.tripId,
+        participant_id: state.participantId,
+        platform: row.platform || state.platform,
+        device_model: row.device_model || state.deviceModel,
+        os_version: row.os_version || state.osVersion,
+        lat: row.lat !== null && row.lat !== undefined ? row.lat : (state.currentLocation ? state.currentLocation.lat : ''),
+        lon: row.lon !== null && row.lon !== undefined ? row.lon : (state.currentLocation ? state.currentLocation.lng : ''),
+        latitude: row.latitude !== null && row.latitude !== undefined ? row.latitude : (state.currentLocation ? state.currentLocation.lat : ''),
+        longitude: row.longitude !== null && row.longitude !== undefined ? row.longitude : (state.currentLocation ? state.currentLocation.lng : ''),
+        altitude: row.altitude !== null && row.altitude !== undefined ? row.altitude : (state.currentAltitude !== null ? state.currentAltitude : ''),
+        heading: row.heading !== null && row.heading !== undefined ? row.heading : (state.currentHeading !== null ? state.currentHeading : ''),
+        speed: row.speed !== null && row.speed !== undefined ? row.speed : (state.currentLocation ? state.currentLocation.speed : 0),
+        accuracy: row.accuracy !== null && row.accuracy !== undefined ? row.accuracy : (state.currentLocation ? state.currentLocation.accuracy : 5),
+        accel_x: row.accel_x !== null && row.accel_x !== undefined ? row.accel_x : (state.currentAccel ? state.currentAccel.x : ''),
+        accel_y: row.accel_y !== null && row.accel_y !== undefined ? row.accel_y : (state.currentAccel ? state.currentAccel.y : ''),
+        accel_z: row.accel_z !== null && row.accel_z !== undefined ? row.accel_z : (state.currentAccel ? state.currentAccel.z : ''),
+        gyro_x: row.gyro_x !== null && row.gyro_x !== undefined ? row.gyro_x : (state.currentGyro ? state.currentGyro.x : ''),
+        gyro_y: row.gyro_y !== null && row.gyro_y !== undefined ? row.gyro_y : (state.currentGyro ? state.currentGyro.y : ''),
+        gyro_z: row.gyro_z !== null && row.gyro_z !== undefined ? row.gyro_z : (state.currentGyro ? state.currentGyro.z : ''),
+        attitude: row.attitude || state.currentAttitude || '',
+        bssid: row.bssid || '',
+        ssid: row.ssid || '',
+        rssi_raw: row.rssi_raw !== null && row.rssi_raw !== undefined ? row.rssi_raw : (row.rssi !== null && row.rssi !== undefined ? row.rssi : ''),
+        rssi: row.rssi,
+        rssi_source: row.rssi_source || 'web_telemetry',
+        user_label_mode: row.user_label_mode || state.selectedMode,
+        activity_recognition_mode: row.activity_recognition_mode || row.predicted_mode || state.predictedMode || 'still',
+        predicted_mode: row.predicted_mode || state.predictedMode || 'still',
+        phone_position: row.phone_position || state.phonePosition,
+        note: row.note || state.tripNote || ''
+      };
+    });
 
     showSyncToast('loading', `กำลังอัปโหลด ${payloadLogs.length} จุดเข้า Google Drive...`);
 
@@ -564,6 +685,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  // Phone Position Chips Selection
+  if (el.posBtns) {
+    el.posBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        el.posBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.phonePosition = btn.dataset.pos;
+      });
+    });
+  }
+
   // 12. Start Trip Action
   el.btnStart.addEventListener('click', () => {
     if (typeof window._requestOrientationPermission === 'function') {
@@ -604,31 +736,75 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // 14. Export CSV (Instant Local Download)
+  // 14. Export CSV (Instant Local Download - Complete 29 Unified Columns)
   el.btnExport.addEventListener('click', () => {
     if (state.logs.length === 0) {
       alert('ไม่มีข้อมูลในรอบนี้ กรุณากด START TRIP หรือกดทดสอบสัญญาณก่อน');
       return;
     }
-    const headers = ['timestamp','participant_id','trip_id','latitude','longitude','altitude','heading','accuracy','speed','ssid','bssid','rssi','user_label_mode','predicted_mode','attitude','note'];
+    const headers = [
+      't_utc_ms',
+      't_mono_ns',
+      'timestamp',
+      'session_id',
+      'participant_id',
+      'platform',
+      'device_model',
+      'os_version',
+      'lat',
+      'lon',
+      'altitude',
+      'heading',
+      'speed',
+      'accuracy',
+      'accel_x',
+      'accel_y',
+      'accel_z',
+      'gyro_x',
+      'gyro_y',
+      'gyro_z',
+      'attitude',
+      'bssid',
+      'ssid',
+      'rssi_raw',
+      'rssi_source',
+      'user_label_mode',
+      'activity_recognition_mode',
+      'phone_position',
+      'note'
+    ];
     let csv = headers.join(',') + '\n';
     state.logs.forEach(row => {
+      const tUtc = row.t_utc_ms || (row.timestamp ? Date.parse(row.timestamp) : Date.now());
       const line = [
-        row.timestamp,
+        tUtc,
+        row.t_mono_ns !== null && row.t_mono_ns !== undefined ? row.t_mono_ns : '',
+        row.timestamp || new Date(tUtc).toISOString(),
+        row.session_id || row.trip_id || state.tripId,
         row.participant_id || state.participantId,
-        row.trip_id || state.tripId,
-        row.latitude !== null && row.latitude !== undefined ? row.latitude : (state.currentLocation ? state.currentLocation.lat : ''),
-        row.longitude !== null && row.longitude !== undefined ? row.longitude : (state.currentLocation ? state.currentLocation.lng : ''),
+        row.platform || state.platform,
+        `"${(row.device_model || state.deviceModel || '').replace(/"/g, '""')}"`,
+        `"${(row.os_version || state.osVersion || '').replace(/"/g, '""')}"`,
+        row.lat !== null && row.lat !== undefined ? row.lat : (state.currentLocation ? state.currentLocation.lat : ''),
+        row.lon !== null && row.lon !== undefined ? row.lon : (state.currentLocation ? state.currentLocation.lng : ''),
         row.altitude !== null && row.altitude !== undefined ? row.altitude : (state.currentAltitude !== null ? state.currentAltitude : ''),
         row.heading !== null && row.heading !== undefined ? row.heading : (state.currentHeading !== null ? state.currentHeading : ''),
-        row.accuracy !== null && row.accuracy !== undefined ? row.accuracy : (state.currentLocation ? state.currentLocation.accuracy : 5),
         row.speed !== null && row.speed !== undefined ? row.speed : (state.currentLocation ? state.currentLocation.speed : 0),
-        `"${(row.ssid || '').replace(/"/g, '""')}"`,
-        row.bssid || '',
-        row.rssi,
-        row.user_label_mode || state.selectedMode,
-        row.predicted_mode || state.predictedMode || '',
+        row.accuracy !== null && row.accuracy !== undefined ? row.accuracy : (state.currentLocation ? state.currentLocation.accuracy : 5),
+        row.accel_x !== null && row.accel_x !== undefined ? row.accel_x : (state.currentAccel ? state.currentAccel.x : ''),
+        row.accel_y !== null && row.accel_y !== undefined ? row.accel_y : (state.currentAccel ? state.currentAccel.y : ''),
+        row.accel_z !== null && row.accel_z !== undefined ? row.accel_z : (state.currentAccel ? state.currentAccel.z : ''),
+        row.gyro_x !== null && row.gyro_x !== undefined ? row.gyro_x : (state.currentGyro ? state.currentGyro.x : ''),
+        row.gyro_y !== null && row.gyro_y !== undefined ? row.gyro_y : (state.currentGyro ? state.currentGyro.y : ''),
+        row.gyro_z !== null && row.gyro_z !== undefined ? row.gyro_z : (state.currentGyro ? state.currentGyro.z : ''),
         `"${(row.attitude || state.currentAttitude || '').replace(/"/g, '""')}"`,
+        row.bssid || '',
+        `"${(row.ssid || '').replace(/"/g, '""')}"`,
+        row.rssi_raw !== null && row.rssi_raw !== undefined ? row.rssi_raw : (row.rssi !== null && row.rssi !== undefined ? row.rssi : ''),
+        row.rssi_source || 'web_telemetry',
+        row.user_label_mode || state.selectedMode,
+        row.activity_recognition_mode || row.predicted_mode || state.predictedMode || 'still',
+        row.phone_position || state.phonePosition,
         `"${(row.note || state.tripNote || '').replace(/"/g, '""')}"`
       ];
       csv += line.join(',') + '\n';
@@ -729,7 +905,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 19. OS Detection & Adaptive Download Highlighting
   function detectOS() {
-    const ua = navigator.userAgent || navigator.vendor || window.opera;
+    const ua = navigator.userAgent || navigator.vendor || window.opera || '';
     const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
     const isAndroid = /android/i.test(ua);
 
@@ -740,18 +916,33 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnAndroid = document.getElementById('btn-dl-android');
 
     if (isIOS) {
+      state.platform = 'ios';
+      state.deviceModel = 'iPhone';
+      const iosVer = ua.match(/OS (\d+[_.]\d+)/);
+      state.osVersion = iosVer ? `iOS ${iosVer[1].replace(/_/g, '.')}` : 'iOS';
+
       if (osIcon) osIcon.textContent = '🍎';
       if (osTitle) osTitle.textContent = 'อุปกรณ์ Apple iOS (iPhone/iPad)';
       if (osDesc) osDesc.textContent = 'แตะโหลดคำสั่งลัดเพื่อเริ่มส่งค่า Wi-Fi เข้าเว็บ';
       if (btnIos) btnIos.classList.add('highlight');
       if (btnAndroid) btnAndroid.style.opacity = '0.45';
     } else if (isAndroid) {
+      state.platform = 'android';
+      const modelMatch = ua.match(/;\s*([^;]+)\s+Build\//);
+      state.deviceModel = modelMatch ? modelMatch[1].trim() : 'Android Device';
+      const androidVer = ua.match(/Android\s+([\d.]+)/);
+      state.osVersion = androidVer ? `Android ${androidVer[1]}` : 'Android';
+
       if (osIcon) osIcon.textContent = '🤖';
       if (osTitle) osTitle.textContent = 'อุปกรณ์ Android';
       if (osDesc) osDesc.textContent = 'แตะติดตั้ง Companion APK เพื่อส่งค่า Wi-Fi เข้าเว็บ';
       if (btnAndroid) btnAndroid.classList.add('highlight');
       if (btnIos) btnIos.style.opacity = '0.45';
     } else {
+      state.platform = 'web';
+      state.deviceModel = navigator.platform || 'Desktop Browser';
+      state.osVersion = 'Web';
+
       if (osIcon) osIcon.textContent = '💻';
       if (osTitle) osTitle.textContent = 'เบราว์เซอร์ทั่วไป / คอมพิวเตอร์';
       if (osDesc) osDesc.textContent = 'สามารถทดสอบจำลองส่งข้อมูลได้ทันที';
@@ -761,6 +952,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // Boot Application
   detectOS();
   startGeoTracking();
-  startOrientationTracking();
+  startMotionAndOrientationTracking();
   startTelemetryEngine();
 });

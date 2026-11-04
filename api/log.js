@@ -91,15 +91,25 @@ module.exports = async (req, res) => {
 function recordTelemetry(query) {
   const bssid = query.bssid || query.bssi || 'unknown';
   const ssid = query.ssid || query.ssi || 'unknown';
-  const rssi = query.rssi !== undefined ? parseInt(query.rssi, 10) : null;
-  const lat = query.lat || query.latitude ? parseFloat(query.lat || query.latitude) : null;
-  const lng = query.lng || query.lon || query.longitude ? parseFloat(query.lng || query.lon || query.longitude) : null;
-  const speed = query.speed ? parseFloat(query.speed) : 0.0;
-  const accuracy = query.accuracy ? parseFloat(query.accuracy) : 5.0;
-  const mode = query.mode || query.user_label_mode || 'walk';
+  const rawRssi = query.rssi_raw !== undefined ? query.rssi_raw : query.rssi;
+  const rssi = rawRssi !== undefined && rawRssi !== '' ? parseFloat(rawRssi) : -99;
+  const lat = query.lat !== undefined ? parseFloat(query.lat) : (query.latitude !== undefined ? parseFloat(query.latitude) : null);
+  const lon = query.lon !== undefined ? parseFloat(query.lon) : (query.lng !== undefined ? parseFloat(query.lng) : (query.longitude !== undefined ? parseFloat(query.longitude) : null));
+  const speed = query.speed !== undefined && query.speed !== '' ? parseFloat(query.speed) : 0.0;
+  const accuracy = query.accuracy !== undefined && query.accuracy !== '' ? parseFloat(query.accuracy) : 5.0;
+  const mode = query.user_label_mode || query.mode || 'walk';
   const participantId = query.participant_id ? decodeURIComponent(query.participant_id).trim() : 'USR-ANON';
-  const tripId = query.trip_id || 'TRIP-DEFAULT';
+  const tripId = query.session_id || query.trip_id || 'TRIP-DEFAULT';
   const note = query.note || query.notes || query.location_note || '';
+
+  // Timing
+  const tUtcMs = query.t_utc_ms ? parseInt(query.t_utc_ms, 10) : Date.now();
+  const tMonoNs = query.t_mono_ns ? parseInt(query.t_mono_ns, 10) : null;
+
+  // Platform & Hardware metadata
+  const platform = query.platform || 'web';
+  const deviceModel = query.device_model || query.devicemodel || 'Unknown-Device';
+  const osVersion = query.os_version || query.osversion || 'Web';
 
   // Kinematics & Orientation (Altitude, Heading, Attitude)
   const rawAlt = query.altitude !== undefined ? query.altitude : query.alt;
@@ -113,32 +123,65 @@ function recordTelemetry(query) {
     attitude = `P:${query.pitch || 0}/R:${query.roll || 0}`;
   }
 
+  // Raw IMU 6-axis (Accelerometer + Gyroscope)
+  const accelX = query.accel_x !== undefined && query.accel_x !== '' ? parseFloat(query.accel_x) : null;
+  const accelY = query.accel_y !== undefined && query.accel_y !== '' ? parseFloat(query.accel_y) : null;
+  const accelZ = query.accel_z !== undefined && query.accel_z !== '' ? parseFloat(query.accel_z) : null;
+
+  const gyroX = query.gyro_x !== undefined && query.gyro_x !== '' ? parseFloat(query.gyro_x) : null;
+  const gyroY = query.gyro_y !== undefined && query.gyro_y !== '' ? parseFloat(query.gyro_y) : null;
+  const gyroZ = query.gyro_z !== undefined && query.gyro_z !== '' ? parseFloat(query.gyro_z) : null;
+
+  // Phone Position
+  const phonePosition = query.phone_position || 'pocket';
+
+  // RSSI source
+  const rssiSource = query.rssi_source || (platform === 'android' ? 'wifimanager' : 'apple_shortcut');
+
   // Predicted Motion Mode (Activity recognition from mobile or speed heuristic)
-  let predictedMode = query.predicted_mode || query.activity_recognition_mode || query.activity || query.motion || null;
+  let predictedMode = query.activity_recognition_mode || query.predicted_mode || query.activity || query.motion || null;
   if (!predictedMode) {
-    if (speed < 1.0) predictedMode = 'still';
-    else if (speed <= 6.5) predictedMode = 'walk';
-    else if (speed <= 18.0) predictedMode = 'run';
+    if (speed < 0.3) predictedMode = 'still';
+    else if (speed <= 1.8) predictedMode = 'walk';
+    else if (speed <= 5.0) predictedMode = 'run';
     else predictedMode = 'vehicle';
   }
 
   const entry = {
     id: memoryStore.length + 1,
-    timestamp: new Date().toISOString(),
-    participant_id: participantId,
+    t_utc_ms: tUtcMs,
+    t_mono_ns: tMonoNs,
+    timestamp: new Date(tUtcMs).toISOString(),
+    session_id: tripId,
     trip_id: tripId,
-    bssid: bssid,
-    ssid: ssid,
-    rssi: isNaN(rssi) ? -99 : rssi,
+    participant_id: participantId,
+    platform: platform,
+    device_model: deviceModel,
+    os_version: osVersion,
+    lat: lat,
+    lon: lon,
     latitude: lat,
-    longitude: lng,
+    longitude: lon,
     altitude: isNaN(altitude) ? null : altitude,
     heading: isNaN(heading) ? null : heading,
     speed: speed,
     accuracy: accuracy,
-    user_label_mode: mode,
-    predicted_mode: predictedMode,
+    accel_x: accelX,
+    accel_y: accelY,
+    accel_z: accelZ,
+    gyro_x: gyroX,
+    gyro_y: gyroY,
+    gyro_z: gyroZ,
     attitude: attitude,
+    bssid: bssid,
+    ssid: ssid,
+    rssi_raw: rssi,
+    rssi: Math.round(rssi),
+    rssi_source: rssiSource,
+    user_label_mode: mode,
+    activity_recognition_mode: predictedMode,
+    predicted_mode: predictedMode,
+    phone_position: phonePosition,
     note: note
   };
 

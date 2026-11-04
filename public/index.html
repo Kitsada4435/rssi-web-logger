@@ -108,6 +108,22 @@
           </div>
         </div>
 
+        <!-- Phone Position Segmented Bar -->
+        <div class="setup-row setup-row-pos">
+          <span class="label-clean">ตำแหน่งพกพา</span>
+          <div class="segmented-control" id="position-control">
+            <button type="button" class="pos-chip active" data-pos="pocket" id="pos-pocket-btn">
+              <span>👖 กางเกง</span>
+            </button>
+            <button type="button" class="pos-chip" data-pos="hand" id="pos-hand-btn">
+              <span>📱 ในมือ</span>
+            </button>
+            <button type="button" class="pos-chip" data-pos="bag" id="pos-bag-btn">
+              <span>🎒 กระเป๋า</span>
+            </button>
+          </div>
+        </div>
+
         <!-- Optional Location Note -->
         <div class="setup-row setup-row-note">
           <label for="trip-note-input" class="label-clean">รายละเอียดสถานที่ / บันทึก</label>
@@ -146,6 +162,10 @@
           <div class="specs-item">
             <span class="item-name">โหมดตรวจจับอัตโนมัติ</span>
             <span class="item-val font-mono" id="predicted-mode-val">--</span>
+          </div>
+          <div class="specs-item">
+            <span class="item-name">เซนเซอร์ IMU (Accel)</span>
+            <span class="item-val font-mono" id="imu-accel-val">0.0, 0.0, 9.8</span>
           </div>
           <div class="specs-item">
             <span class="item-name">มุมเอียง (Attitude)</span>
