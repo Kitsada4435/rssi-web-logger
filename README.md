@@ -94,10 +94,17 @@ Web Application and Telemetry Bridge pipeline designed for field data collection
 
 ### สำหรับสมาร์ตโฟน Android
 
-1. เปิดหน้าเว็บ `https://rssi-web-logger.vercel.app` ผ่าน Google Chrome
-2. แตะขยายแถบ **ตัวช่วยส่งสัญญาณ Wi-Fi (iOS / Android)**
-3. กดปุ่ม **โหลด Android APK** เพื่อดาวน์โหลดไฟล์ `rssi-logger-android.apk`
-4. ติดตั้งไฟล์ APK ลงในเครื่อง และเปิดสิทธิ์ **Location (ตำแหน่งที่ตั้ง)** และ **Nearby Devices (อุปกรณ์ใกล้เคียง)**
+เนื่องจากมาตรฐานความปลอดภัยของเบราว์เซอร์สากล (W3C Security Sandbox) ไม่อนุญาตให้หน้าเว็บอ่านค่าฮาร์ดแวร์ Wi-Fi (BSSID และ RSSI) โดยตรง จึงต้องใช้ตัวช่วยอ่านค่าส่งข้อมูลเข้าเว็บ:
+
+* **วิธีที่ 1 (แนะนำสำหรับการเก็บข้อมูลวิจัยที่สมบูรณ์ที่สุด):**
+  1. เปิดหน้าเว็บ `https://rssi-web-logger.vercel.app` ผ่าน Google Chrome
+  2. แตะขยายแถบ **ตัวช่วยส่งสัญญาณ Wi-Fi (iOS / Android)**
+  3. กดปุ่ม **โหลด Android APK** เพื่อดาวน์โหลดไฟล์ `rssi-logger-android.apk`
+  4. ติดตั้งไฟล์ APK ลงในเครื่อง และเปิดสิทธิ์ **Location (ตำแหน่งที่ตั้ง)** และ **Nearby Devices (อุปกรณ์ใกล้เคียง)**
+* **วิธีที่ 2 (ใช้งานผ่านแอป Automation โดยไม่ต้องติดตั้งแอปเฉพาะกิจ):**
+  * ใช้งานแอป **MacroDroid** หรือ **Tasker** กำหนดการทำงานให้อ่านค่า `%WIFIRSSI` และ `%WIFIBSSID` แล้วส่งคำขอ HTTP GET เข้ามาที่ `/api/log` เช่นเดียวกับ iOS Shortcut (ดูตัวอย่างใน `public/downloads/macrodroid_guide.txt`)
+* **ข้อจำกัดหากเปิดผ่านเว็บเบราว์เซอร์เพียวๆ (ไม่ใช้แอปช่วย):**
+  * หน้าเว็บยังคงสามารถเก็บพิกัด GPS, ความสูง, ทิศทาง, เซนเซอร์ IMU (ความเร่งและการหมุน 6 แกน) และทำนายโหมดการเคลื่อนไหวได้ครบถ้วน แต่จะไม่มีค่า Wi-Fi BSSID และ RSSI
 
 ---
 
@@ -115,8 +122,9 @@ flowchart LR
 
 1. **เปิดหน้าเว็บ:** เข้า `https://rssi-web-logger.vercel.app`
 2. **ตั้งค่าก่อนเริ่มเดินทาง:**
-   * **รหัสผู้เข้าร่วม (Device ID):** ระบบคำนวณรหัสเครื่องให้อัตโนมัติ (เช่น `IOS-7A2B`) หรือสามารถพิมพ์รหัสนักศึกษาของตนเองได้
+   * **รหัสผู้เข้าร่วม (Device ID):** ระบบคำนวณรหัสเครื่องให้อัตโนมัติ (เช่น `IOS-7A2B`) หรือสามารถพิมพ์รหัสนักศึกษาของตนเองได้ (เช่น `680631034`)
    * **โหมดการเดินทาง:** แตะเลือกโหมด: **เดิน / ปั่นจักรยาน / มอเตอร์ไซค์ / รถยนต์**
+   * **ตำแหน่งการพกพาโทรศัพท์:** แตะเลือกลักษณะการพกพา: **กางเกง (Pocket) / ในมือ (Hand) / กระเป๋า (Bag)**
    * **รายละเอียดสถานที่ / บันทึก (Notes):** *(ไม่บังคับ)* พิมพ์จุดสังเกตเพื่อช่วยจำแนกกลุ่มข้อมูล เช่น `อาคารวิศวะ ชั้น 3, โซนโรงอาหาร`
 3. **เริ่มบันทึก:**
    * กดปุ่ม **เริ่มบันทึก (START TRIP)** (เวลาจะเริ่มเดิน และหน้าจอจะไม่ดับ)
@@ -251,15 +259,27 @@ flowchart TD
 ## API Reference
 
 ### 1. Ingest / Query Telemetry: `/api/log`
-Handles both recording telemetry from mobile devices and polling latest records to the web client.
+Handles recording incoming telemetry from mobile clients and polling latest records to the web client.
 
 * **Method:** `GET` | `POST`
-* **Query Parameters (Ingestion):**
+* **Query / Body Parameters (Ingestion):**
   * `bssid` (string): BSSID / MAC Address of the Access Point.
   * `ssid` (string): SSID of the connected Wi-Fi network.
-  * `rssi` (integer): Signal strength in dBm (e.g. `-65`).
-  * `participant_id` (string): Unique device fingerprint or participant name.
-  * `trip_id` (string, optional): Current trip identifier.
+  * `rssi` / `rssi_raw` (number): Signal strength in dBm (e.g. `-58.0`).
+  * `participant_id` (string): Unique device fingerprint or participant identifier.
+  * `trip_id` / `session_id` (string, optional): Current trip identifier.
+  * `lat` / `latitude` (float, optional): Latitude coordinate.
+  * `lon` / `longitude` (float, optional): Longitude coordinate.
+  * `altitude` (float, optional): Altitude in meters above sea level.
+  * `heading` (float, optional): Direction in degrees (0-360) from True North.
+  * `speed` (float, optional): Moving speed.
+  * `accuracy` (float, optional): Horizontal GPS accuracy in meters.
+  * `accel_x`, `accel_y`, `accel_z` (float, optional): 3-axis Accelerometer with gravity (m/s²).
+  * `gyro_x`, `gyro_y`, `gyro_z` (float, optional): 3-axis Gyroscope (rad/s).
+  * `attitude` (string, optional): Orientation string (e.g. `P:12° / R:-4°`).
+  * `user_label_mode` (string, optional): Manual transit mode (`walk`, `bike`, `motorcycle`, `car`).
+  * `activity_recognition_mode` (string, optional): Auto-detected motion activity (`still`, `walk`, `run`, `vehicle`).
+  * `phone_position` (string, optional): Carrying position (`pocket`, `hand`, `bag`).
   * `note` (string, optional): Location description or research note.
 * **Query Parameters (Dashboard Polling):**
   * `action=get`: Fetches all in-memory telemetry entries since container initialization.
@@ -268,7 +288,7 @@ Handles both recording telemetry from mobile devices and polling latest records 
 
 #### Sample Ingestion Request:
 ```http
-GET /api/log?bssid=00:1A:2B:3C:4D:5E&ssid=Campus-WiFi&rssi=-58&participant_id=IOS-7A2B HTTP/1.1
+GET /api/log?bssid=04:5F:B9:E4:F1:4A&ssid=@JumboPlus5GHz&rssi=-40&participant_id=680631034&lat=18.79546&lon=98.95289&altitude=312.4&heading=185&user_label_mode=walk&phone_position=pocket HTTP/1.1
 Host: rssi-web-logger.vercel.app
 ```
 
@@ -279,17 +299,35 @@ Host: rssi-web-logger.vercel.app
   "count": 42,
   "entry": {
     "id": 42,
-    "timestamp": "2026-11-02T12:47:29.387Z",
-    "participant_id": "IOS-7A2B",
-    "trip_id": "TRIP-20261102-A9F2",
-    "bssid": "00:1A:2B:3C:4D:5E",
-    "ssid": "Campus-WiFi",
-    "rssi": -58,
-    "latitude": 13.75633,
-    "longitude": 100.50185,
-    "speed": 1.4,
-    "accuracy": 4.0,
+    "t_utc_ms": 1793766101811,
+    "t_mono_ns": 306364989625,
+    "timestamp": "2026-11-04T11:21:41.811Z",
+    "session_id": "TRIP-20261104-A9F2",
+    "participant_id": "680631034",
+    "platform": "android",
+    "device_model": "samsung SM-S948B",
+    "os_version": "Android 17",
+    "lat": 18.7954698,
+    "lon": 98.9528959,
+    "altitude": 312.4,
+    "heading": 185.0,
+    "speed": 0.0997,
+    "accuracy": 7.98,
+    "accel_x": -1.1198,
+    "accel_y": 3.3403,
+    "accel_z": 9.8751,
+    "gyro_x": 0.0629,
+    "gyro_y": -0.2061,
+    "gyro_z": 0.0355,
+    "attitude": "P:12° / R:-4°",
+    "bssid": "04:5f:b9:e4:f1:4a",
+    "ssid": "@JumboPlus5GHz",
+    "rssi_raw": -40.0,
+    "rssi": -40,
+    "rssi_source": "wifimanager",
     "user_label_mode": "walk",
+    "activity_recognition_mode": "still",
+    "phone_position": "pocket",
     "note": "Engineering Building Floor 3"
   }
 }
@@ -306,11 +344,49 @@ Triggered automatically when the user taps **STOP TRIP** or manually clicks **Sy
 ```json
 {
   "webhook_url": "https://script.google.com/macros/s/.../exec",
-  "trip_id": "TRIP-20261102-A9F2",
-  "participant_id": "IOS-7A2B",
-  "logs": [ ...array of telemetry entries... ]
+  "trip_id": "TRIP-20261104-A9F2",
+  "participant_id": "680631034",
+  "logs": [ ...array of 29-column telemetry entries... ]
 }
 ```
+
+---
+
+## Data Schema Specification (Unified Master Schema)
+
+Every CSV exported locally or uploaded to Google Drive conforms to this 29-column specification:
+
+| No. | Column Header | Data Type | Sample Value | Description |
+| :---: | :--- | :---: | :--- | :--- |
+| 1 | `t_utc_ms` | Integer (Epoch ms) | `1793766101811` | Unix epoch timestamp in milliseconds |
+| 2 | `t_mono_ns` | Integer (Monotonic ns) | `306364989625` | Monotonic clock timestamp in nanoseconds |
+| 3 | `timestamp` | ISO 8601 String | `2026-11-04T11:21:41.811Z` | UTC timestamp in ISO 8601 format |
+| 4 | `session_id` | String | `TRIP-20261104-A9F2` | Trip / survey session identifier |
+| 5 | `participant_id` | String | `680631034` or `IOS-7A2B` | Permanent hardware ID or user-assigned ID |
+| 6 | `platform` | String | `android`, `ios`, `web` | Operating system platform |
+| 7 | `device_model` | String | `samsung SM-S948B`, `iPhone` | Hardware model string |
+| 8 | `os_version` | String | `Android 17`, `iOS 18.1` | OS version string |
+| 9 | `lat` | Float | `18.7954698` | GPS latitude coordinate |
+| 10 | `lon` | Float | `98.9528959` | GPS longitude coordinate |
+| 11 | `altitude` | Float (m) | `312.4` | Height above sea level from GPS |
+| 12 | `heading` | Float (deg) | `185.0` | Travel heading / compass direction (0-360) |
+| 13 | `speed` | Float | `0.0997` | Speed in m/s or km/h |
+| 14 | `accuracy` | Float (m) | `7.98` | Horizontal GPS accuracy estimate |
+| 15 | `accel_x` | Float (m/s²) | `-1.1198` | 3-axis Accelerometer X (including gravity) |
+| 16 | `accel_y` | Float (m/s²) | `3.3403` | 3-axis Accelerometer Y (including gravity) |
+| 17 | `accel_z` | Float (m/s²) | `9.8751` | 3-axis Accelerometer Z (including gravity) |
+| 18 | `gyro_x` | Float (rad/s) | `0.0629` | 3-axis Gyroscope rotation rate X |
+| 19 | `gyro_y` | Float (rad/s) | `-0.2061` | 3-axis Gyroscope rotation rate Y |
+| 20 | `gyro_z` | Float (rad/s) | `0.0355` | 3-axis Gyroscope rotation rate Z |
+| 21 | `attitude` | String | `P:12° / R:-4°` | Device tilt attitude (Pitch / Roll) |
+| 22 | `bssid` | String | `04:5f:b9:e4:f1:4a` | MAC address of the Wi-Fi Access Point |
+| 23 | `ssid` | String | `@JumboPlus5GHz` | Wi-Fi network SSID |
+| 24 | `rssi_raw` | Float (dBm) | `-40.0` | Raw Wi-Fi received signal strength |
+| 25 | `rssi_source` | String | `wifimanager`, `apple_shortcut` | Wi-Fi driver ingestion source |
+| 26 | `user_label_mode` | String | `walk`, `bike`, `motorcycle`, `car` | User-selected ground truth transit mode |
+| 27 | `activity_recognition_mode` | String | `still`, `walk`, `run`, `vehicle` | Automated motion recognition mode |
+| 28 | `phone_position` | String | `pocket`, `hand`, `bag` | Phone carrying position |
+| 29 | `note` | String | `Engineering Building Floor 3` | Contextual location notes or landmarks |
 
 ---
 
