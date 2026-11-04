@@ -167,8 +167,8 @@ app.post('/api/sync-drive', async (req, res) => {
       // Old GAS Script parameters (from RSSI GPS Application)
       filename: filename,
       content: base64Content,
-      os: os || 'web',
-      deviceModel: device_model || 'web-browser',
+      os: os || (logsToSync[0] && logsToSync[0].platform) || 'ios',
+      deviceModel: device_model || (logsToSync[0] && logsToSync[0].device_model) || (os === 'android' ? 'Android Device' : 'Apple iPhone'),
       participantId: cleanParticipantId,
 
       // New GAS Script parameters (for Google Sheets real-time)

@@ -36,7 +36,7 @@ module.exports = (req, res) => {
       row.timestamp || new Date(tUtc).toISOString(),
       row.session_id || row.trip_id || '',
       row.participant_id || '',
-      row.platform || 'web',
+      row.platform || 'ios',
       `"${(row.device_model || '').replace(/"/g, '""')}"`,
       row.lat !== null && row.lat !== undefined ? row.lat : (row.latitude !== null && row.latitude !== undefined ? row.latitude : ''),
       row.lon !== null && row.lon !== undefined ? row.lon : (row.longitude !== null && row.longitude !== undefined ? row.longitude : ''),

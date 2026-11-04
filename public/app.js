@@ -76,8 +76,8 @@ document.addEventListener('DOMContentLoaded', () => {
     selectedMode: 'walk',
     phonePosition: 'pocket',
     predictedMode: 'still',
-    platform: 'web',
-    deviceModel: 'Generic Device',
+    platform: 'ios',
+    deviceModel: 'Apple iPhone',
     currentLocation: null,
     watchId: null,
     wakeLock: null,
@@ -430,8 +430,8 @@ document.addEventListener('DOMContentLoaded', () => {
         timestamp: row.timestamp || new Date(tUtc).toISOString(),
         session_id: row.session_id || row.trip_id || state.tripId,
         participant_id: row.participant_id || state.participantId,
-        platform: row.platform || state.platform || 'web',
-        device_model: row.device_model || state.deviceModel || 'Generic Device',
+        platform: row.platform || state.platform || 'ios',
+        device_model: row.device_model || state.deviceModel || 'Apple iPhone',
         lat: row.lat !== null && row.lat !== undefined ? row.lat : (state.currentLocation ? state.currentLocation.lat : ''),
         lon: row.lon !== null && row.lon !== undefined ? row.lon : (state.currentLocation ? state.currentLocation.lng : ''),
         speed: row.speed !== null && row.speed !== undefined ? row.speed : (state.currentLocation ? state.currentLocation.speed : 0),
@@ -456,6 +456,8 @@ document.addEventListener('DOMContentLoaded', () => {
           webhook_url: state.gdriveWebhook,
           trip_id: state.tripId,
           participant_id: state.participantId,
+          os: state.platform || 'ios',
+          device_model: state.deviceModel || 'Apple iPhone',
           logs: payloadLogs
         })
       });
@@ -661,8 +663,8 @@ document.addEventListener('DOMContentLoaded', () => {
         row.timestamp || new Date(tUtc).toISOString(),
         row.session_id || row.trip_id || state.tripId,
         row.participant_id || state.participantId,
-        row.platform || state.platform || 'web',
-        `"${(row.device_model || state.deviceModel || 'Generic Device').replace(/"/g, '""')}"`,
+        row.platform || state.platform || 'ios',
+        `"${(row.device_model || state.deviceModel || 'Apple iPhone').replace(/"/g, '""')}"`,
         row.lat !== null && row.lat !== undefined ? row.lat : (state.currentLocation ? state.currentLocation.lat : ''),
         row.lon !== null && row.lon !== undefined ? row.lon : (state.currentLocation ? state.currentLocation.lng : ''),
         row.speed !== null && row.speed !== undefined ? row.speed : (state.currentLocation ? state.currentLocation.speed : 0),
@@ -811,13 +813,13 @@ document.addEventListener('DOMContentLoaded', () => {
       if (btnAndroid) btnAndroid.classList.add('highlight');
       if (btnIos) btnIos.style.opacity = '0.45';
     } else {
-      state.platform = 'web';
-      state.deviceModel = navigator.platform || 'Desktop Browser';
-      state.osVersion = 'Web';
+      state.platform = 'ios';
+      state.deviceModel = 'Apple iPhone';
+      state.osVersion = 'iOS 18';
 
-      if (osIcon) osIcon.textContent = '💻';
-      if (osTitle) osTitle.textContent = 'เบราว์เซอร์ทั่วไป / คอมพิวเตอร์';
-      if (osDesc) osDesc.textContent = 'สามารถทดสอบจำลองส่งข้อมูลได้ทันที';
+      if (osIcon) osIcon.textContent = '🍎';
+      if (osTitle) osTitle.textContent = 'เว็บแดชบอร์ดสำหรับ iOS';
+      if (osDesc) osDesc.textContent = 'เชื่อมต่อคำสั่งลัดบน iPhone เพื่อบันทึกข้อมูลเข้าสู่ระบบ';
     }
   }
 

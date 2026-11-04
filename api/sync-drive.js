@@ -28,8 +28,8 @@ function generateCsvString(logs, participantId, tripId) {
       row.timestamp || new Date(tUtc).toISOString(),
       row.session_id || row.trip_id || tripId,
       row.participant_id || participantId,
-      row.platform || 'web',
-      `"${(row.device_model || '').replace(/"/g, '""')}"`,
+      row.platform || 'ios',
+      `"${(row.device_model || (row.platform === 'android' ? 'Android Device' : 'Apple iPhone')).replace(/"/g, '""')}"`,
       row.lat !== null && row.lat !== undefined ? row.lat : (row.latitude !== null && row.latitude !== undefined ? row.latitude : ''),
       row.lon !== null && row.lon !== undefined ? row.lon : (row.longitude !== null && row.longitude !== undefined ? row.longitude : ''),
       row.speed !== null && row.speed !== undefined ? row.speed : '',
@@ -83,8 +83,8 @@ module.exports = async (req, res) => {
     // Old GAS Script parameters (from RSSI GPS Application)
     filename: filename,
     content: base64Content,
-    os: os || 'web',
-    deviceModel: device_model || 'web-browser',
+    os: os || (logs[0] && logs[0].platform) || 'ios',
+    deviceModel: device_model || (logs[0] && logs[0].device_model) || (os === 'android' ? 'Android Device' : 'Apple iPhone'),
     participantId: cleanParticipantId,
 
     // New GAS Script parameters (for Google Sheets real-time)

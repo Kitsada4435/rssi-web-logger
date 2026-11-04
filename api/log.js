@@ -133,8 +133,8 @@ function recordTelemetry(query, req) {
   const isIos = query.platform === 'ios' || /iPhone|iPad|iPod|Shortcuts|Darwin|CFNetwork/i.test(userAgent) || /iphone|ios/i.test(participantId);
   const isAndroid = query.platform === 'android' || /Android/i.test(userAgent);
 
-  const platform = query.platform || (isIos ? 'ios' : (isAndroid ? 'android' : 'web'));
-  const deviceModel = query.device_model || query.devicemodel || (isIos ? 'Apple iPhone' : (isAndroid ? 'Android Device' : 'Generic Device'));
+  const platform = query.platform || (isAndroid ? 'android' : 'ios');
+  const deviceModel = query.device_model || query.devicemodel || (platform === 'android' ? 'Android Device' : 'Apple iPhone');
 
   // Phone Position
   const phonePosition = query.phone_position || 'pocket';
