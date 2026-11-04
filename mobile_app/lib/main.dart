@@ -287,51 +287,70 @@ class _DashboardPageState extends State<DashboardPage> {
 
   Widget _buildCompactModeBtn(String mode, IconData icon, String label) {
     final isSelected = _currentMode == mode;
-    return GestureDetector(
-      onTap: () {
-        widget.sensorManager.updateMode(mode);
-        setState(() => _currentMode = mode);
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        width: MediaQuery.of(context).size.width / 4 - 14,
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF0F172A) : Colors.white,
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 3),
+        child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: isSelected ? const Color(0xFF0F172A) : Colors.grey.shade300, width: 2),
-          boxShadow: isSelected ? [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 4))] : [],
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: isSelected ? Colors.white : Colors.black87, size: 28),
-            const SizedBox(height: 6),
-            Text(label, style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w900,
-              color: isSelected ? Colors.white : Colors.black87,
-            )),
-          ],
+          onTap: () {
+            widget.sensorManager.updateMode(mode);
+            setState(() => _currentMode = mode);
+          },
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            decoration: BoxDecoration(
+              color: isSelected ? const Color(0xFF0F172A) : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: isSelected ? const Color(0xFF0F172A) : Colors.grey.shade300, width: 2),
+              boxShadow: isSelected ? [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 4))] : [],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, color: isSelected ? Colors.white : Colors.black87, size: 24),
+                const SizedBox(height: 4),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(label, style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                    color: isSelected ? Colors.white : Colors.black87,
+                  )),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
 
   Widget _buildDashMetric(String title, String value, String unit) {
-    return Column(
-      children: [
-        Text(title, style: const TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1)),
-        const SizedBox(height: 4),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
-          children: [
-            Text(value, style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900)),
-            const SizedBox(width: 4),
-            Text(unit, style: const TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.bold)),
-          ],
-        )
-      ],
+    return Expanded(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(title, style: const TextStyle(color: Colors.white54, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1)),
+          ),
+          const SizedBox(height: 2),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text(value, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
+                const SizedBox(width: 4),
+                Text(unit, style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)),
+              ],
+            ),
+          )
+        ],
+      ),
     );
   }
 
@@ -554,31 +573,33 @@ class _DashboardPageState extends State<DashboardPage> {
                       // RSSI Value (Massive display)
                       Column(
                         children: [
-                          const Text('Wi-Fi RSSI', style: TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 2)),
-                          const SizedBox(height: 8),
-                          Text(
-                            widget.sensorManager.lastWifi != null ? '${widget.sensorManager.lastWifi!['rssi']}' : '--',
-                            style: const TextStyle(color: Colors.white, fontSize: 96, fontWeight: FontWeight.w900, height: 1.0, shadows: [
-                               Shadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4))
-                            ])
+                          const Text('Wi-Fi RSSI', style: TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 2)),
+                          const SizedBox(height: 4),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              widget.sensorManager.lastWifi != null ? '${widget.sensorManager.lastWifi!['rssi']}' : '--',
+                              style: const TextStyle(color: Colors.white, fontSize: 72, fontWeight: FontWeight.w900, height: 1.0, shadows: [
+                                 Shadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4))
+                              ])
+                            ),
                           ),
-                          const Text('dBm', style: TextStyle(color: Colors.white70, fontSize: 20, fontWeight: FontWeight.w900)),
+                          const Text('dBm', style: TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.w900)),
                         ]
                       ),
 
                       // Speed & Accuracy (Row)
                       Container(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(24),
+                          borderRadius: BorderRadius.circular(20),
                         ),
                         child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
-                             _buildDashMetric('SPEED', widget.sensorManager.lastPosition != null ? (widget.sensorManager.lastPosition!.speed * 3.6).toStringAsFixed(0) : '--', 'km/h'),
-                             Container(width: 2, height: 40, color: Colors.white.withOpacity(0.2)),
-                             _buildDashMetric('GPS ACC', widget.sensorManager.lastPosition != null ? '±${widget.sensorManager.lastPosition!.accuracy.toStringAsFixed(0)}' : '--', 'm'),
+                             _buildDashMetric('SPEED', widget.sensorManager.lastPosition != null ? (widget.sensorManager.lastPosition!.speed * 3.6).toStringAsFixed(2) : '--', 'km/h'),
+                             Container(width: 1.5, height: 32, color: Colors.white.withOpacity(0.2)),
+                             _buildDashMetric('GPS ACC', widget.sensorManager.lastPosition != null ? '±${widget.sensorManager.lastPosition!.accuracy.toStringAsFixed(1)}' : '--', 'm'),
                           ],
                         ),
                       ),
@@ -595,8 +616,8 @@ class _DashboardPageState extends State<DashboardPage> {
                   backgroundColor: _isRecording ? const Color(0xFFEF4444) : const Color(0xFF10B981), // Vivid Red / Vivid Green
                   foregroundColor: Colors.white,
                   disabledBackgroundColor: Colors.grey.shade300,
-                  padding: const EdgeInsets.symmetric(vertical: 24),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                   elevation: 0,
                 ),
                 onPressed: ((_missingPermissions.isNotEmpty && !_isRecording) || _isProcessing) ? null : _toggleRecording,

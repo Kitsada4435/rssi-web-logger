@@ -52,17 +52,20 @@ module.exports = async (req, res) => {
     return res.status(200).json({ status: 'ok', message: targetParticipant ? `Cleared for ${targetParticipant}` : 'Cleared all' });
   }
 
-  const hasTelemetry = query.bssid || query.ssid || query.rssi !== undefined;
+  const hasTelemetry = query.bssid || query.ssid || query.rssi !== undefined || query.rssi_raw !== undefined;
   const isLogsUrl = (req.url && (req.url.includes('/api/logs') || req.url.includes('/api/stream'))) || query.action === 'get';
 
   // 2. Handle Fetching Logs (Polled by Web Dashboard with Strict Multi-User Isolation)
   if (isLogsUrl || (req.method === 'GET' && !hasTelemetry && req.headers.accept && !req.headers.accept.includes('text/html'))) {
     let filteredLogs = memoryStore;
 
-    // Strict participant filter: Each client only receives packets destined for their device ID
+    // Strict participant filter: Each client receives packets for their device ID (and fallback anon)
     if (query.participant_id) {
       const pId = String(query.participant_id).toLowerCase().trim();
-      filteredLogs = filteredLogs.filter(e => String(e.participant_id || '').toLowerCase().trim() === pId);
+      filteredLogs = filteredLogs.filter(e => {
+        const ePid = String(e.participant_id || '').toLowerCase().trim();
+        return ePid === pId || ePid === 'usr-anon';
+      });
     } else {
       // Reject polling without participant_id to prevent leaking other participants' data
       filteredLogs = [];
@@ -75,10 +78,13 @@ module.exports = async (req, res) => {
       }
     }
 
+    const recentSenders = [...new Set(memoryStore.slice(-20).map(e => e.participant_id).filter(Boolean))];
+
     return res.status(200).json({
       status: 'ok',
       count: filteredLogs.length,
-      logs: filteredLogs
+      logs: filteredLogs,
+      recent_senders: recentSenders
     });
   }
 
@@ -121,7 +127,7 @@ function recordTelemetry(query, req) {
   const speed = query.speed !== undefined && query.speed !== '' ? parseFloat(query.speed) : 0.0;
   const accuracy = query.accuracy !== undefined && query.accuracy !== '' ? parseFloat(query.accuracy) : 5.0;
   const mode = query.user_label_mode || query.mode || 'walk';
-  const participantId = query.participant_id ? decodeURIComponent(query.participant_id).trim() : 'USR-ANON';
+  const participantId = query.participant_id ? decodeURIComponent(query.participant_id).trim() : (query.id ? decodeURIComponent(query.id).trim() : (query.device_id ? decodeURIComponent(query.device_id).trim() : 'USR-ANON'));
   const tripId = query.session_id || query.trip_id || 'TRIP-DEFAULT';
   const note = query.note || query.notes || query.location_note || '';
 

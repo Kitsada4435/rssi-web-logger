@@ -211,7 +211,7 @@
           </div>
 
           <div class="bridge-url-box">
-            <span class="bridge-url-label">URL ปลายทางสำหรับส่งข้อมูล:</span>
+            <span class="bridge-url-label">URL สำหรับใส่ใน Shortcut (คัดลอกไปวางในบล็อก URL):</span>
             <div class="bridge-url-row">
               <code class="font-mono" id="server-url-display">...</code>
               <button type="button" class="btn-copy-sm" id="btn-copy-url">คัดลอก</button>
@@ -220,11 +220,13 @@
 
           <div class="bridge-guide-notes">
             <div class="note-box note-warning">
-              <b>⚠️ กฎสำคัญใน Shortcut:</b>
-              <span>ต้องใช้คำสั่ง <b>"รับเนื้อหาของ URL" (Get contents of URL)</b> เท่านั้น ห้ามใช้ "เปิด URL" และห้ามเคาะวรรคหลังเครื่องหมาย <code>?</code></span>
+              <b>⚠️ โครงสร้างคำสั่งลัด (Shortcuts) บน iOS:</b>
+              <span>1. <b>รับรายละเอียดของเครือข่าย Wi-Fi</b> (ดึงค่า *ความแรงสัญญาณ Wi-Fi, BSSID, ชื่อเครือข่าย*)<br>
+              2. <b>URL</b>: วาง URL ที่คัดลอกจากด้านบน แล้วเลือกตัวแปรต่อท้ายให้ครบ <code>&amp;rssi=<b>[ความแรงสัญญาณ]</b>&amp;bssid=<b>[BSSID]</b>&amp;ssid=<b>[ชื่อเครือข่าย]</b></code><br>
+              3. <b>ดึงข้อมูลจาก URL</b> (Get contents of URL) เท่านั้น ห้ามใช้ "เปิด URL"</span>
             </div>
             <div class="note-box">
-              <b>💡 วิธีแก้เตือน "ไม่สามารถเปิดคำสั่งลัดได้":</b>
+              <b>💡 หากเปิดไฟล์ .shortcut ไม่ได้:</b>
               <span>เปิดแอป <b>"ไฟล์" (Files)</b> &gt; ดาวน์โหลด &gt; แตะค้างที่ไฟล์ &gt; แชร์ &gt; เลือก <b>"คำสั่งลัด"</b></span>
             </div>
           </div>

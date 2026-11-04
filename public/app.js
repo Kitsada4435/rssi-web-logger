@@ -226,11 +226,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 5. Ingest Telemetry Entry (Text-First Display)
   function ingestEntry(entry) {
-    // Multi-User Security: Reject packets belonging to another participant
+    // Multi-User Security: Reject packets belonging to another participant (allow USR-ANON fallback)
     if (entry.participant_id && state.participantId) {
       const entryPid = String(entry.participant_id).toLowerCase().trim();
       const currentPid = String(state.participantId).toLowerCase().trim();
-      if (entryPid !== currentPid) {
+      if (entryPid !== currentPid && entryPid !== 'usr-anon') {
         return;
       }
     }
@@ -536,7 +536,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 10. Participant ID Management (Permanent Persistence)
   function updateServerUrlDisplay() {
-    const url = `${window.location.origin}/api/log?participant_id=${encodeURIComponent(state.participantId)}`;
+    const url = `${window.location.origin}/api/log?participant_id=${encodeURIComponent(state.participantId)}&rssi=[ความแรงสัญญาณ]&bssid=[BSSID]&ssid=[ชื่อ Wi-Fi]`;
     if (el.serverUrlDisplay) el.serverUrlDisplay.textContent = url;
   }
 
@@ -796,10 +796,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 18. Copy Server Ingest URL (Bound to this device)
   function getIngestUrl() {
-    return `${window.location.origin}/api/log?participant_id=${encodeURIComponent(state.participantId)}`;
+    return `${window.location.origin}/api/log?participant_id=${encodeURIComponent(state.participantId)}&rssi=`;
   }
   if (el.serverUrlDisplay) {
-    el.serverUrlDisplay.textContent = getIngestUrl();
+    el.serverUrlDisplay.textContent = `${window.location.origin}/api/log?participant_id=${encodeURIComponent(state.participantId)}&rssi=[ความแรงสัญญาณ]&bssid=[BSSID]&ssid=[ชื่อ Wi-Fi]`;
   }
   if (el.btnCopyUrl) {
     el.btnCopyUrl.addEventListener('click', () => {
