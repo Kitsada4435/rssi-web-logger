@@ -135,6 +135,16 @@ function recordTelemetry(query, req) {
 
   const platform = query.platform || (isAndroid ? 'android' : 'ios');
   const deviceModel = query.device_model || query.devicemodel || (platform === 'android' ? 'Android Device' : 'Apple iPhone');
+  const osVersion = query.os_version || (platform === 'android' ? 'Android' : 'iOS 18.1');
+  const rssiSource = query.rssi_source || (platform === 'android' ? 'wifimanager' : 'shortcut');
+
+  // IMU Motion data (if forwarded)
+  const accelX = query.accel_x !== undefined ? query.accel_x : '';
+  const accelY = query.accel_y !== undefined ? query.accel_y : '';
+  const accelZ = query.accel_z !== undefined ? query.accel_z : '';
+  const gyroX = query.gyro_x !== undefined ? query.gyro_x : '';
+  const gyroY = query.gyro_y !== undefined ? query.gyro_y : '';
+  const gyroZ = query.gyro_z !== undefined ? query.gyro_z : '';
 
   // Phone Position
   const phonePosition = query.phone_position || 'pocket';
@@ -151,18 +161,27 @@ function recordTelemetry(query, req) {
   const entry = {
     id: memoryStore.length + 1,
     t_utc_ms: tUtcMs,
+    t_mono_ns: query.t_mono_ns || '',
     timestamp: new Date(tUtcMs).toISOString(),
     session_id: tripId,
     participant_id: participantId,
     platform: platform,
     device_model: deviceModel,
+    os_version: osVersion,
     lat: lat,
     lon: lon,
     speed: speed,
     accuracy: accuracy,
+    accel_x: accelX,
+    accel_y: accelY,
+    accel_z: accelZ,
+    gyro_x: gyroX,
+    gyro_y: gyroY,
+    gyro_z: gyroZ,
     bssid: bssid,
     ssid: ssid,
     rssi_raw: rssi,
+    rssi_source: rssiSource,
     user_label_mode: mode,
     activity_recognition_mode: predictedMode,
     phone_position: phonePosition,

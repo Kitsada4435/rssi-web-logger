@@ -4,7 +4,7 @@
 [![Vercel Deployment](https://img.shields.io/badge/Vercel-Production%20Ready-black?style=flat&logo=vercel)](https://rssi-web-logger.vercel.app)
 [![Node.js](https://img.shields.io/badge/Node.js-18.x%20%7C%2020.x-green?style=flat&logo=node.js)](https://nodejs.org)
 [![Platform Support](https://img.shields.io/badge/Platform-Android%20%7C%20iOS-blue?style=flat)](https://github.com/Kitsada4435/wifi-telemetry-pipeline)
-[![Data Format](https://img.shields.io/badge/Schema-17%20Core%20Columns-success?style=flat)](#)
+[![Data Format](https://img.shields.io/badge/Schema-26%20Unified%20Columns-success?style=flat)](#)
 
 ระบบรวบรวมข้อมูลโทรมาตร (Telemetry Pipeline) สำหรับงานวิจัยด้านโครงข่ายไร้สายและการระบุตำแหน่งภายในอาคาร (Indoor Localization) รองรับการบันทึกค่าความแรงสัญญาณ Wi-Fi RSSI ควบคู่กับพิกัดดาวเทียม GPS และโหมดการเคลื่อนไหว โดยแบ่งการทำงานตามข้อกำหนดของระบบปฏิบัติการออกเป็น 2 ระบบ: แอปพลิเคชันบน Android และเว็บแดชบอร์ดร่วมกับคำสั่งลัดบน iOS
 
@@ -28,7 +28,7 @@
 2. [ขั้นตอนการติดตั้งและการเก็บข้อมูลภาคสนาม](#2-ขั้นตอนการติดตั้งและการเก็บข้อมูลภาคสนาม)
    * [2.1 ขั้นตอนสำหรับอุปกรณ์ Android (ใช้งานผ่านแอปพลิเคชัน)](#21-ขั้นตอนสำหรับอุปกรณ์-android)
    * [2.2 ขั้นตอนสำหรับอุปกรณ์ iOS / iPhone (ใช้งานผ่าน Safari และคำสั่งลัด)](#22-ขั้นตอนสำหรับอุปกรณ์-ios--iphone)
-3. [ข้อกำหนดโครงสร้างข้อมูล 17 คอลัมน์ (Data Schema Specification)](#3-ข้อกำหนดโครงสร้างข้อมูล-17-คอลัมน์)
+3. [ข้อกำหนดโครงสร้างข้อมูล 26 คอลัมน์มาตรฐานวิจัย (Unified Research Schema)](#3-ข้อกำหนดโครงสร้างข้อมูล-26-คอลัมน์มาตรฐานวิจัย)
 4. [โครงสร้างการจัดเก็บข้อมูลบน Google Drive](#4-โครงสร้างการจัดเก็บข้อมูลบน-google-drive)
 
 ---
@@ -119,29 +119,38 @@ flowchart TD
 
 ---
 
-## 3. ข้อกำหนดโครงสร้างข้อมูล 17 คอลัมน์ (Data Schema Specification)
+## 3. ข้อกำหนดโครงสร้างข้อมูล 26 คอลัมน์มาตรฐานวิจัย (Unified Research Schema)
 
-ชุดข้อมูลโทรมาตรทั้งหมดจากทั้ง Android และ iOS จัดเก็บในโครงสร้างตาราง 17 คอลัมน์มาตรฐานเดียวกัน:
+ชุดข้อมูลโทรมาตรทั้งหมดจากทั้ง Android Application และ iOS Web Pipeline จัดเก็บในโครงสร้างตาราง 26 คอลัมน์มาตรฐานเดียวกัน เพื่อให้สามารถรวมไฟล์ชุดข้อมูล (Data Concatenation) สำหรับฝึกสอนแบบจำลองปัญญาประดิษฐ์ (AI/ML Model Training) ได้อย่างไร้รอยต่อ:
 
 | ลำดับ | ชื่อคอลัมน์ (Column Name) | ชนิดข้อมูล (Data Type) | ตัวอย่างข้อมูล | คำอธิบายรายละเอียด |
 | :---: | :--- | :---: | :--- | :--- |
-| 1 | `t_utc_ms` | Integer (Epoch ms) | `1793766101811` | ค่าเวลา Unix Epoch ในหน่วยมิลลิวินาที สำหรับเทียบเวลาอ้างอิง |
-| 2 | `timestamp` | ISO 8601 String | `2026-11-04T11:21:41.811Z` | วันและเวลามาตรฐานสากล (UTC) |
-| 3 | `session_id` | String | `TRIP-20261104-A9F2` | รหัสรอบการเก็บข้อมูลประจำการสำรวจ |
-| 4 | `participant_id` | String | `680631034` | รหัสนักศึกษาผู้ร่วมการสำรวจ หรือรหัสอ้างอิงฮาร์ดแวร์ |
-| 5 | `platform` | String | `android`, `ios` | ระบบปฏิบัติการของอุปกรณ์ที่ใช้เก็บข้อมูล |
-| 6 | `device_model` | String | `samsung SM-S948B`, `iPhone` | ข้อมูลรุ่นฮาร์ดแวร์ของอุปกรณ์ |
-| 7 | `lat` | Float | `18.7954698` | ละติจูดพิกัดดาวเทียม GPS |
-| 8 | `lon` | Float | `98.9528959` | ลองจิจูดพิกัดดาวเทียม GPS |
-| 9 | `speed` | Float | `1.4` | ความเร็วในการเคลื่อนที่ |
-| 10 | `accuracy` | Float (เมตร) | `5.0` | รัศมีความคลาดเคลื่อนในแนวราบของ GPS |
-| 11 | `bssid` | String | `04:5f:b9:e4:f1:4a` | ที่อยู่ทางกายภาพ (MAC Address) ของอุปกรณ์กระจายสัญญาณ Wi-Fi |
-| 12 | `ssid` | String | `@JumboPlus5GHz` | ชื่อเครือข่ายสัญญาณ Wi-Fi ที่เชื่อมต่อ |
-| 13 | `rssi_raw` | Float (dBm) | `-45.0` | ค่าความแรงสัญญาณดิบ (Received Signal Strength Indicator) |
-| 14 | `user_label_mode` | String | `walk`, `bike`, `motorcycle`, `car` | โหมดการเคลื่อนที่ที่ผู้สำรวจเลือกกำหนด (Ground Truth Label) |
-| 15 | `activity_recognition_mode` | String | `still`, `walk`, `run`, `vehicle` | โหมดการเคลื่อนไหวที่ระบบคำนวณและจำแนกอัตโนมัติ |
-| 16 | `phone_position` | String | `pocket`, `hand`, `bag` | ลักษณะการพกพาอุปกรณ์โทรศัพท์ขณะสำรวจ |
-| 17 | `note` | String | `อาคารวิศวะ ชั้น 3, โซนแล็บ` | บันทึกรายละเอียดบริบทสถานที่หรือจุดสังเกตเพิ่มเติม |
+| 1 | `t_utc_ms` | Integer (Epoch ms) | `1793766101811` | ค่าเวลา Unix Epoch ในหน่วยมิลลิวินาที สำหรับเทียบเวลาอ้างอิงสากล |
+| 2 | `t_mono_ns` | Integer (Monotonic ns) | `184729104820` | ค่าเวลาฮาร์ดแวร์ Monotonic Clock ในหน่วยนาโนวินาที สำหรับการซิงค์รอบสัญญาณ |
+| 3 | `timestamp` | ISO 8601 String | `2026-11-04T11:21:41.811Z` | วันและเวลามาตรฐานสากล (UTC) |
+| 4 | `session_id` | String | `TRIP-20261104-A9F2` | รหัสรอบการเก็บข้อมูลประจำการสำรวจ |
+| 5 | `participant_id` | String | `680631034` | รหัสนักศึกษาผู้ร่วมการสำรวจ หรือรหัสอ้างอิงฮาร์ดแวร์ |
+| 6 | `platform` | String | `android`, `ios` | ระบบปฏิบัติการของอุปกรณ์ที่ใช้เก็บข้อมูล |
+| 7 | `device_model` | String | `samsung SM-S948B`, `iPhone` | ข้อมูลรุ่นฮาร์ดแวร์ของอุปกรณ์ |
+| 8 | `os_version` | String | `Android 14`, `iOS 18.1` | เวอร์ชันของระบบปฏิบัติการ |
+| 9 | `lat` | Float | `18.7954698` | ละติจูดพิกัดดาวเทียม GPS |
+| 10 | `lon` | Float | `98.9528959` | ลองจิจูดพิกัดดาวเทียม GPS |
+| 11 | `speed` | Float | `1.4` | ความเร็วในการเคลื่อนที่ |
+| 12 | `accuracy` | Float (เมตร) | `5.0` | รัศมีความคลาดเคลื่อนในแนวราบของ GPS |
+| 13 | `accel_x` | Float (m/s²) | `0.1245` | ค่าความเร่งตามแกน X (IMU Accelerometer) |
+| 14 | `accel_y` | Float (m/s²) | `9.8066` | ค่าความเร่งตามแกน Y (IMU Accelerometer) |
+| 15 | `accel_z` | Float (m/s²) | `-0.0521` | ค่าความเร่งตามแกน Z (IMU Accelerometer) |
+| 16 | `gyro_x` | Float (rad/s) | `0.0021` | ความเร็วเชิงมุมแกน X (IMU Gyroscope) |
+| 17 | `gyro_y` | Float (rad/s) | `-0.0014` | ความเร็วเชิงมุมแกน Y (IMU Gyroscope) |
+| 18 | `gyro_z` | Float (rad/s) | `0.0008` | ความเร็วเชิงมุมแกน Z (IMU Gyroscope) |
+| 19 | `bssid` | String | `04:5f:b9:e4:f1:4a` | ที่อยู่ทางกายภาพ (MAC Address) ของอุปกรณ์กระจายสัญญาณ Wi-Fi |
+| 20 | `ssid` | String | `@JumboPlus5GHz` | ชื่อเครือข่ายสัญญาณ Wi-Fi ที่เชื่อมต่อ |
+| 21 | `rssi_raw` | Float (dBm) | `-45.0` | ค่าความแรงสัญญาณดิบ (Received Signal Strength Indicator) |
+| 22 | `rssi_source` | String | `wifimanager`, `shortcut` | ช่องทางที่ระบบดึงข้อมูลค่าสัญญาณ Wi-Fi |
+| 23 | `user_label_mode` | String | `walk`, `bike`, `motorcycle`, `car` | โหมดการเคลื่อนที่ที่ผู้สำรวจเลือกกำหนด (Ground Truth Label) |
+| 24 | `activity_recognition_mode` | String | `still`, `walk`, `run`, `vehicle` | โหมดการเคลื่อนไหวที่ระบบคำนวณและจำแนกอัตโนมัติ |
+| 25 | `phone_position` | String | `pocket`, `hand`, `bag` | ลักษณะการพกพาอุปกรณ์โทรศัพท์ขณะสำรวจ |
+| 26 | `note` | String | `อาคารวิศวะ ชั้น 3, โซนแล็บ` | บันทึกรายละเอียดบริบทสถานที่หรือจุดสังเกตเพิ่มเติม |
 
 ---
 
@@ -179,7 +188,7 @@ flowchart TD
     subgraph ServerlessLayer ["Vercel Ingestion API"]
         LogAPI["/api/log<br>- Multi-User Isolated Ingestion<br>- Ephemeral Store Cache<br>- Delta Polling Filter"]
         SyncAPI["/api/sync-drive<br>- Base64 CSV Assembler Proxy"]
-        ExportAPI["/api/export<br>- 17-Column Filtered CSV Export"]
+        ExportAPI["/api/export<br>- 26-Column Filtered CSV Export"]
     end
 
     subgraph StorageLayer ["Google Workspace Cloud Infrastructure"]
@@ -211,7 +220,7 @@ wifi-telemetry-pipeline/
 │   ├── log.js                           # Telemetry ingestion and isolated delta polling
 │   ├── sync-drive.js                    # Batch Google Drive / Sheets sync proxy
 │   ├── logs.js                          # Backward-compatibility alias
-│   └── export.js                        # Isolated 17-column CSV export stream
+│   └── export.js                        # Isolated 26-column CSV export stream
 ├── public/                              # Web Dashboard Frontend (iOS / Desktop)
 │   ├── index.html                       # Minimalist high-contrast user interface
 │   ├── style.css                        # Mobile-optimized dark mode CSS
@@ -294,7 +303,7 @@ Proxies survey batch datasets to Google Apps Script.
   "webhook_url": "https://script.google.com/macros/s/.../exec",
   "trip_id": "TRIP-20261104-A9F2",
   "participant_id": "680631034",
-  "logs": [ ...array of 17-column telemetry entries... ]
+  "logs": [ ...array of 26-column telemetry entries... ]
 }
 ```
 

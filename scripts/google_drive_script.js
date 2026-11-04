@@ -42,18 +42,27 @@ function doPost(e) {
         const tUtc = row.t_utc_ms || (row.timestamp ? Date.parse(row.timestamp) : Date.now());
         sheetData.push([
           tUtc,
+          row.t_mono_ns || "",
           row.timestamp || new Date(tUtc).toISOString(),
           row.session_id || row.trip_id || "TRIP",
           row.participant_id || "ANON",
           row.platform || "ios",
           row.device_model || (row.platform === "android" ? "Android Device" : "Apple iPhone"),
+          row.os_version || (row.platform === "android" ? "Android" : "iOS 18.1"),
           row.lat !== null && row.lat !== undefined ? row.lat : (row.latitude !== null && row.latitude !== undefined ? row.latitude : ""),
           row.lon !== null && row.lon !== undefined ? row.lon : (row.longitude !== null && row.longitude !== undefined ? row.longitude : ""),
           row.speed !== null && row.speed !== undefined ? row.speed : "",
           row.accuracy !== null && row.accuracy !== undefined ? row.accuracy : "",
+          row.accel_x !== null && row.accel_x !== undefined ? row.accel_x : "",
+          row.accel_y !== null && row.accel_y !== undefined ? row.accel_y : "",
+          row.accel_z !== null && row.accel_z !== undefined ? row.accel_z : "",
+          row.gyro_x !== null && row.gyro_x !== undefined ? row.gyro_x : "",
+          row.gyro_y !== null && row.gyro_y !== undefined ? row.gyro_y : "",
+          row.gyro_z !== null && row.gyro_z !== undefined ? row.gyro_z : "",
           row.bssid || "",
           row.ssid || "",
           row.rssi_raw !== null && row.rssi_raw !== undefined ? row.rssi_raw : (row.rssi !== null && row.rssi !== undefined ? row.rssi : ""),
+          row.rssi_source || (row.platform === "android" ? "wifimanager" : "shortcut"),
           row.user_label_mode || "walk",
           row.activity_recognition_mode || row.predicted_mode || "still",
           row.phone_position || "pocket",
@@ -63,7 +72,7 @@ function doPost(e) {
 
       if (sheetData.length > 0) {
         const lastRow = sheet.getLastRow();
-        sheet.getRange(lastRow + 1, 1, sheetData.length, 17).setValues(sheetData);
+        sheet.getRange(lastRow + 1, 1, sheetData.length, 26).setValues(sheetData);
         rowsAdded = sheetData.length;
       }
 
@@ -82,18 +91,27 @@ function doPost(e) {
       const tUtc = data.t_utc_ms || (data.timestamp ? Date.parse(data.timestamp) : Date.now());
       const row = [
         tUtc,
+        data.t_mono_ns || "",
         data.timestamp || new Date(tUtc).toISOString(),
         data.session_id || data.trip_id || "TRIP",
         data.participant_id || "ANON",
         data.platform || "ios",
         data.device_model || (data.platform === "android" ? "Android Device" : "Apple iPhone"),
+        data.os_version || (data.platform === "android" ? "Android" : "iOS 18.1"),
         data.lat !== null && data.lat !== undefined ? data.lat : (data.latitude !== null && data.latitude !== undefined ? data.latitude : ""),
         data.lon !== null && data.lon !== undefined ? data.lon : (data.longitude !== null && data.longitude !== undefined ? data.longitude : ""),
         data.speed || 0,
         data.accuracy || 5,
+        data.accel_x !== null && data.accel_x !== undefined ? data.accel_x : "",
+        data.accel_y !== null && data.accel_y !== undefined ? data.accel_y : "",
+        data.accel_z !== null && data.accel_z !== undefined ? data.accel_z : "",
+        data.gyro_x !== null && data.gyro_x !== undefined ? data.gyro_x : "",
+        data.gyro_y !== null && data.gyro_y !== undefined ? data.gyro_y : "",
+        data.gyro_z !== null && data.gyro_z !== undefined ? data.gyro_z : "",
         data.bssid || "",
         data.ssid || "",
         data.rssi_raw !== null && data.rssi_raw !== undefined ? data.rssi_raw : (data.rssi !== null && data.rssi !== undefined ? data.rssi : -99),
+        data.rssi_source || (data.platform === "android" ? "wifimanager" : "shortcut"),
         data.user_label_mode || data.mode || "walk",
         data.activity_recognition_mode || data.predicted_mode || "still",
         data.phone_position || "pocket",
@@ -147,28 +165,37 @@ function getOrCreateSpreadsheet(folder, sheetName) {
     folder.addFile(ssFile);
     DriveApp.getRootFolder().removeFile(ssFile);
 
-    // สร้าง Header แถวแรก
+    // สร้าง Header แถวแรก (Unified 26 Core Research Schema)
     const ws = ss.getActiveSheet();
     ws.appendRow([
       "t_utc_ms",
+      "t_mono_ns",
       "timestamp",
       "session_id",
       "participant_id",
       "platform",
       "device_model",
+      "os_version",
       "lat",
       "lon",
       "speed",
       "accuracy",
+      "accel_x",
+      "accel_y",
+      "accel_z",
+      "gyro_x",
+      "gyro_y",
+      "gyro_z",
       "bssid",
       "ssid",
       "rssi_raw",
+      "rssi_source",
       "user_label_mode",
       "activity_recognition_mode",
       "phone_position",
       "note"
     ]);
-    ws.getRange("A1:Q1").setFontWeight("bold").setBackground("#0f172a").setFontColor("#38bdf8");
+    ws.getRange("A1:Z1").setFontWeight("bold").setBackground("#0f172a").setFontColor("#38bdf8");
     ws.setFrozenRows(1);
   }
   return ss.getActiveSheet();
@@ -178,18 +205,27 @@ function getOrCreateSpreadsheet(folder, sheetName) {
 function generateCsvString(logs) {
   const headers = [
     "t_utc_ms",
+    "t_mono_ns",
     "timestamp",
     "session_id",
     "participant_id",
     "platform",
     "device_model",
+    "os_version",
     "lat",
     "lon",
     "speed",
     "accuracy",
+    "accel_x",
+    "accel_y",
+    "accel_z",
+    "gyro_x",
+    "gyro_y",
+    "gyro_z",
     "bssid",
     "ssid",
     "rssi_raw",
+    "rssi_source",
     "user_label_mode",
     "activity_recognition_mode",
     "phone_position",
@@ -200,18 +236,27 @@ function generateCsvString(logs) {
     const tUtc = row.t_utc_ms || (row.timestamp ? Date.parse(row.timestamp) : Date.now());
     const line = [
       tUtc,
+      row.t_mono_ns || "",
       row.timestamp || new Date(tUtc).toISOString(),
       row.session_id || row.trip_id || "TRIP",
       row.participant_id || "ANON",
       row.platform || "ios",
-      `"${(row.device_model || "").replace(/"/g, '""')}"`,
+      `"${(row.device_model || (row.platform === "android" ? "Android Device" : "Apple iPhone")).replace(/"/g, '""')}"`,
+      `"${(row.os_version || (row.platform === "android" ? "Android" : "iOS 18.1")).replace(/"/g, '""')}"`,
       row.lat !== null && row.lat !== undefined ? row.lat : (row.latitude !== null && row.latitude !== undefined ? row.latitude : ""),
       row.lon !== null && row.lon !== undefined ? row.lon : (row.longitude !== null && row.longitude !== undefined ? row.longitude : ""),
       row.speed !== null && row.speed !== undefined ? row.speed : "",
       row.accuracy !== null && row.accuracy !== undefined ? row.accuracy : "",
+      row.accel_x !== null && row.accel_x !== undefined ? row.accel_x : "",
+      row.accel_y !== null && row.accel_y !== undefined ? row.accel_y : "",
+      row.accel_z !== null && row.accel_z !== undefined ? row.accel_z : "",
+      row.gyro_x !== null && row.gyro_x !== undefined ? row.gyro_x : "",
+      row.gyro_y !== null && row.gyro_y !== undefined ? row.gyro_y : "",
+      row.gyro_z !== null && row.gyro_z !== undefined ? row.gyro_z : "",
       row.bssid || "",
       `"${(row.ssid || "").replace(/"/g, '""')}"`,
       row.rssi_raw !== null && row.rssi_raw !== undefined ? row.rssi_raw : (row.rssi !== null && row.rssi !== undefined ? row.rssi : ""),
+      row.rssi_source || (row.platform === "android" ? "wifimanager" : "shortcut"),
       row.user_label_mode || "walk",
       row.activity_recognition_mode || row.predicted_mode || "still",
       row.phone_position || "pocket",

@@ -53,7 +53,7 @@ class CloudManager {
       if (lines.length > 1) {
         final row = lines[1].split(',');
         if (row.length >= 8) {
-          participantId = row[3].replaceAll('"', '');
+          participantId = row[4].replaceAll('"', '');
           os = row[5].replaceAll('"', '');
           deviceModel = row[6].replaceAll('"', '');
         }

@@ -15,14 +15,35 @@ class ExportManager {
     final events = await db.getEventsBySession(sessionId);
     if (events.isEmpty) return 'ไม่มีข้อมูลใน Session นี้';
 
-    // 2. เตรียม Header ของ CSV
+    // 2. เตรียม Header ของ CSV (Unified 26-Column Research Schema)
     List<List<dynamic>> rows = [];
     rows.add([
-      't_utc_ms', 't_mono_ns', 'session_id', 'participant_id', 'type', 'platform', 'device_model', 'os_version',
-      'lat', 'lon', 'speed', 'accuracy',
-      'accel_x', 'accel_y', 'accel_z',
-      'gyro_x', 'gyro_y', 'gyro_z',
-      'bssid', 'ssid', 'rssi_raw', 'rssi_source', 'user_label_mode', 'activity_recognition_mode', 'phone_position'
+      't_utc_ms',
+      't_mono_ns',
+      'timestamp',
+      'session_id',
+      'participant_id',
+      'platform',
+      'device_model',
+      'os_version',
+      'lat',
+      'lon',
+      'speed',
+      'accuracy',
+      'accel_x',
+      'accel_y',
+      'accel_z',
+      'gyro_x',
+      'gyro_y',
+      'gyro_z',
+      'bssid',
+      'ssid',
+      'rssi_raw',
+      'rssi_source',
+      'user_label_mode',
+      'activity_recognition_mode',
+      'phone_position',
+      'note'
     ]);
 
     // 3. ใส่ข้อมูลทีละแถว พร้อม Forward-fill ค่าล่าสุดเพื่อไม่ให้เกิดช่องว่าง (Zero Blanks)
@@ -37,8 +58,17 @@ class ExportManager {
       if (e.gyroX != null) { lastGyroX = e.gyroX; lastGyroY = e.gyroY; lastGyroZ = e.gyroZ; }
       if (e.rssiRaw != null) { lastRssi = e.rssiRaw; lastBssid = e.bssid; lastSsid = e.ssid; }
 
+      final isoTime = DateTime.fromMillisecondsSinceEpoch(e.tUtcMs).toUtc().toIso8601String();
+
       rows.add([
-        e.tUtcMs, e.tMonoNs, e.sessionId, e.participantId, e.type, e.platform, e.deviceModel, e.osVersion,
+        e.tUtcMs,
+        e.tMonoNs,
+        isoTime,
+        e.sessionId,
+        e.participantId ?? '',
+        e.platform,
+        e.deviceModel ?? '',
+        e.osVersion ?? '',
         e.lat ?? lastLat ?? '',
         e.lon ?? lastLon ?? '',
         e.speed ?? lastSpeed ?? '',
@@ -52,7 +82,11 @@ class ExportManager {
         e.bssid ?? lastBssid ?? '',
         e.ssid ?? lastSsid ?? '',
         e.rssiRaw ?? lastRssi ?? '',
-        e.rssiSource, e.userLabelMode, e.activityRecognitionMode, e.phonePosition
+        e.rssiSource ?? 'wifimanager',
+        e.userLabelMode ?? '',
+        e.activityRecognitionMode ?? '',
+        e.phonePosition ?? '',
+        ''
       ]);
     }
 
