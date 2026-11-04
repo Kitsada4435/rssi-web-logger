@@ -214,8 +214,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Geolocation Tracker (Pure Satellite Hardware - 0 MB Cellular Data Used)
-  const geoHistory = [];
-  let lastFilteredSpeed = 0.0;
+  let lastGeoPos = null;
+  let lastGeoTime = null;
 
   function startGeoTracking() {
     if ('geolocation' in navigator) {
@@ -229,35 +229,23 @@ document.addEventListener('DOMContentLoaded', () => {
           // 1. Native speed if provided by hardware (> 0)
           if (pos.coords.speed !== null && !isNaN(pos.coords.speed) && pos.coords.speed > 0) {
             speedNum = pos.coords.speed * 3.6;
-            lastFilteredSpeed = speedNum;
-          } else {
-            // 2. Rolling Kinematic calculation for iOS Safari
-            geoHistory.push({ lat, lng, time: now });
-            if (geoHistory.length > 5) geoHistory.shift();
-
-            if (geoHistory.length >= 2) {
-              const oldest = geoHistory[0];
-              const dt = (now - oldest.time) / 1000;
-              if (dt >= 1.0) {
-                const dist = calcHaversineDistance(oldest.lat, oldest.lng, lat, lng);
-                // Deadband filter: if distance moved over window is >= 0.7m, calculate walking speed
-                if (dist >= 0.7) {
-                  const instantSpeed = (dist / dt) * 3.6;
-                  // Smooth with EMA to prevent erratic spikes from indoor GPS jitter
-                  speedNum = lastFilteredSpeed > 0 ? (0.5 * instantSpeed + 0.5 * lastFilteredSpeed) : instantSpeed;
-                  lastFilteredSpeed = speedNum;
-                } else {
-                  // Stationary / standing still
-                  lastFilteredSpeed = 0.0;
-                  speedNum = 0.0;
-                }
-              } else {
-                speedNum = lastFilteredSpeed;
+          } else if (lastGeoPos && lastGeoTime) {
+            // 2. Pure Kinematic Speed from physical movement (Haversine distance / dt)
+            const dt = (now - lastGeoTime) / 1000;
+            if (dt >= 0.5) {
+              const dist = calcHaversineDistance(lastGeoPos.lat, lastGeoPos.lng, lat, lng);
+              if (dist >= 0.4) {
+                speedNum = (dist / dt) * 3.6;
               }
             }
           }
 
-          if (speedNum > 150) speedNum = 0.0; // Filter unreasonable GPS telemetry jumps
+          if (lastGeoPos === null || (now - lastGeoTime) >= 500) {
+            lastGeoPos = { lat, lng };
+            lastGeoTime = now;
+          }
+
+          if (speedNum > 200) speedNum = 0.0; // Filter invalid GPS jumps
           const speed = speedNum.toFixed(2);
           const acc = pos.coords.accuracy ? Math.round(pos.coords.accuracy) : 5;
 
