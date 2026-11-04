@@ -222,7 +222,6 @@ wifi-telemetry-pipeline/
 │       └── macrodroid_guide.txt         # Alternative Android automation guide
 ├── mobile_app/                          # Android Application Source Code (Flutter)
 │   ├── android/                         # Native Android Gradle configuration
-│   ├── ios/                             # Native iOS configuration
 │   ├── lib/                             # Dart application source code
 │   │   ├── main.dart                    # Application UI entry point
 │   │   ├── sensor_manager.dart          # Wi-Fi BSSID/RSSI, GPS, and motion manager

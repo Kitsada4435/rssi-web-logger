@@ -47,15 +47,9 @@ class SensorManager {
 
   Future<void> initSensors() async {
     final deviceInfo = DeviceInfoPlugin();
-    if (Platform.isAndroid) {
-      final androidInfo = await deviceInfo.androidInfo;
-      _deviceModel = '${androidInfo.manufacturer} ${androidInfo.model}';
-      _osVersion = 'Android ${androidInfo.version.release}';
-    } else if (Platform.isIOS) {
-      final iosInfo = await deviceInfo.iosInfo;
-      _deviceModel = iosInfo.utsname.machine;
-      _osVersion = 'iOS ${iosInfo.systemVersion}';
-    }
+    final androidInfo = await deviceInfo.androidInfo;
+    _deviceModel = '${androidInfo.manufacturer} ${androidInfo.model}';
+    _osVersion = 'Android ${androidInfo.version.release}';
 
     await gps.init();
     await activity.init();
@@ -131,7 +125,7 @@ class SensorManager {
       tMonoNs: Value(Timeline.now),
       sessionId: Value(_currentSessionId!),
       type: const Value('sync_sample'),
-      platform: Value(Platform.isAndroid ? 'android' : 'ios'),
+      platform: const Value('android'),
       lat: Value(pos?.latitude),
       lon: Value(pos?.longitude),
       speed: Value(pos?.speed),

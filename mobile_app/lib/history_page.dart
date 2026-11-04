@@ -264,7 +264,7 @@ class _HistoryPageState extends State<HistoryPage> {
                                   Container(
                                     decoration: BoxDecoration(color: Colors.grey.shade50, shape: BoxShape.circle),
                                     child: IconButton(
-                                      icon: const Icon(Icons.ios_share_rounded, color: Colors.blueGrey, size: 22),
+                                      icon: const Icon(Icons.share_rounded, color: Colors.blueGrey, size: 22),
                                       onPressed: () => _shareFile(file),
                                       tooltip: 'แชร์ไฟล์',
                                     ),

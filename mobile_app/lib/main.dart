@@ -181,25 +181,15 @@ class _DashboardPageState extends State<DashboardPage> {
     final prefs = await SharedPreferences.getInstance();
     String? id;
 
-    if (Platform.isIOS) {
-      // 1. Try reading from iOS Keychain (survives app uninstall & reinstall)
-      try {
-        const secureStorage = FlutterSecureStorage();
-        id = await secureStorage.read(key: 'participant_id');
-      } catch (e) {
-        debugPrint('Keychain read error: $e');
+    // 1. Try reading Android Hardware ID (Settings.Secure.ANDROID_ID)
+    try {
+      const channel = MethodChannel('com.example.rssi_logger/device');
+      final String? hwId = await channel.invokeMethod<String>('getAndroidHardwareId');
+      if (hwId != null && hwId.isNotEmpty) {
+        id = hwId.length >= 8 ? hwId.substring(0, 8) : hwId;
       }
-    } else if (Platform.isAndroid) {
-      // 1. Try reading Android Hardware ID (Settings.Secure.ANDROID_ID)
-      try {
-        const channel = MethodChannel('com.example.rssi_logger/device');
-        final String? hwId = await channel.invokeMethod<String>('getAndroidHardwareId');
-        if (hwId != null && hwId.isNotEmpty) {
-          id = hwId.length >= 8 ? hwId.substring(0, 8) : hwId;
-        }
-      } catch (e) {
-        debugPrint('Android HW ID error: $e');
-      }
+    } catch (e) {
+      debugPrint('Android HW ID error: $e');
     }
 
     // 2. Check SharedPreferences if not found above
@@ -212,16 +202,8 @@ class _DashboardPageState extends State<DashboardPage> {
       id = const Uuid().v4().substring(0, 8);
     }
 
-    // 4. Save to SharedPreferences and iOS Keychain
+    // 4. Save to SharedPreferences
     await prefs.setString('participant_id', id);
-    if (Platform.isIOS) {
-      try {
-        const secureStorage = FlutterSecureStorage();
-        await secureStorage.write(key: 'participant_id', value: id);
-      } catch (e) {
-        debugPrint('Keychain write error: $e');
-      }
-    }
 
     if (mounted) {
       setState(() {
@@ -236,15 +218,6 @@ class _DashboardPageState extends State<DashboardPage> {
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('participant_id', cleanId);
-
-    if (Platform.isIOS) {
-      try {
-        const secureStorage = FlutterSecureStorage();
-        await secureStorage.write(key: 'participant_id', value: cleanId);
-      } catch (e) {
-        debugPrint('Keychain write error: $e');
-      }
-    }
   }
 
   void _toggleRecording() async {
