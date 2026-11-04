@@ -49,25 +49,30 @@
 
 ---
 
-## CSV Data Schema
+## CSV Data Schema (Clean 18 Columns)
 
-Exported CSV files adhere to the following unified schema:
+Exported CSV files adhere to the following unified 18-column research schema:
 
 | Column Name | Description | Example Value |
 |:---|:---|:---|
-| `t_utc_ms` | Universal Coordinated Time timestamp (Milliseconds) | `1729420000000` |
-| `t_mono_ns` | Hardware Monotonic Clock (Nanoseconds) | `184729104820` |
-| `session_id` | Unique identifier for the logging trip | `1729420000000` |
-| `participant_id` | Assigned participant identifier | `std_64010123` |
-| `platform` / `device_model` / `os_version` | Hardware and operating system specifications | `ios`, `iPhone15,5`, `18.1` |
-| `lat` / `lon` / `speed` / `accuracy` | GPS coordinates, travel speed, and horizontal accuracy | `18.79592`, `98.95267`, `1.79`, `9.5` |
-| `accel_x, y, z` | 3-axis linear acceleration ($m/s^2$) | `0.21`, `0.08`, `9.81` |
-| `gyro_x, y, z` | 3-axis angular velocity ($rad/s$) | `0.01`, `-0.02`, `0.00` |
-| `bssid` | Hardware MAC address of the connected Wi-Fi AP | `aa:bb:cc:dd:ee:ff` |
-| `ssid` | Wireless network name (SSID) | `Campus-WiFi` |
-| `rssi_raw` | Measured Wi-Fi signal strength (dBm) | `-45` |
-| `rssi_source` | Acquisition protocol/channel | `wifimanager` (Android) / `shortcut` (iOS) |
-| `user_label_mode` / `phone_position` | Transportation mode tag and device location | `walk`, `pocket` |
+| `t_utc_ms` | Universal Coordinated Time timestamp (Milliseconds) | `1793787785108` |
+| `timestamp` | ISO 8601 formatted UTC date and time | `2026-11-04T10:23:05.108Z` |
+| `session_id` | Unique identifier for the logging trip | `TRIP-20261104-YAJA` |
+| `participant_id` | Student ID / UserID | `680631031` |
+| `platform` | Operating system platform | `android`, `ios` |
+| `device_model` | Device hardware model | `OPPO CPH1823`, `Apple iPhone` |
+| `os_version` | Operating system version | `Android 10`, `iOS 18.1` |
+| `lat` | GPS Latitude coordinate | `18.8029431` |
+| `lon` | GPS Longitude coordinate | `98.9924727` |
+| `speed` | Moving speed in km/h (Kinematic decimal precision) | `0.20`, `1.19` |
+| `accuracy` | GPS horizontal accuracy (Meters) | `14.0` |
+| `bssid` | Hardware MAC address of the connected Wi-Fi AP | `66:20:e1:95:ba:be` |
+| `ssid` | Wireless network name (SSID) | `Jakkapas_5G` |
+| `rssi_raw` | Measured Wi-Fi signal strength (dBm) | `-76.0` |
+| `rssi_source` | Acquisition protocol/channel | `wifimanager`, `shortcut` |
+| `user_label_mode` | Ground-truth transportation mode tag | `walk`, `bike`, `motorcycle`, `car` |
+| `phone_position` | Device carrying position | `pocket`, `hand`, `bag` |
+| `note` | Contextual location note | `Building 3, 4th floor` |
 
 ---
 
@@ -77,9 +82,9 @@ Download installation binaries and automated shortcut workflows directly:
 
 | Platform / Tool | Target File | Direct Download |
 |:---|:---|:---|
-| **Android** | `app-release.apk` | [Download APK](https://github.com/Kitsada4435/rssi_logger_app/raw/main/app-release.apk) |
-| **iOS (Application)** | `Runner.ipa` | [Download IPA (Releases)](https://github.com/Kitsada4435/rssi_logger_app/releases/download/v1.0.0/Runner.ipa) |
-| **iOS (Shortcuts)** | `Send Rssi Logger App.shortcut` | [Download Shortcut (Safari)](https://github.com/Kitsada4435/rssi_logger_app/raw/main/Send%20Rssi%20Logger%20App.shortcut) |
+| **Android** | `rssi-logger-android.apk` | [Download APK](https://rssi-web-logger.vercel.app/downloads/rssi-logger-android.apk) |
+| **iOS (Web Dashboard)** | Safari Dashboard | [Open Dashboard](https://rssi-web-logger.vercel.app) |
+| **iOS (Shortcuts)** | `Send Rssi Logger web.shortcut` | [Download Shortcut (Safari)](https://rssi-web-logger.vercel.app/downloads/Send%20Rssi%20Logger%20web.shortcut) |
 
 ---
 
@@ -87,11 +92,12 @@ Download installation binaries and automated shortcut workflows directly:
 
 ### 1. Android Setup
 
-1. Download and install [app-release.apk](https://github.com/Kitsada4435/rssi_logger_app/raw/main/app-release.apk).
-2. Launch the app and set **Location Permission** to **"Allow all the time"** for background recording.
-3. Enter your **Participant ID** and select your initial transportation mode.
-4. Tap **START TRIP** to commence recording (modes can be switched seamlessly during travel).
-5. Tap **STOP TRIP** upon arrival; session data will automatically compile into a CSV file.
+1. Download and install [rssi-logger-android.apk](https://rssi-web-logger.vercel.app/downloads/rssi-logger-android.apk).
+2. Launch the app (on first startup, enter your **UserID / Student ID** in the prompt dialog to store permanently).
+3. Set **Location Permission** to **"Allow all the time"** for background recording.
+4. Verify your **UserID** (the container highlights in **Green** when valid, or **Red** if invalid).
+5. Tap **START TRIP** to commence recording (modes can be switched seamlessly during travel).
+6. Tap **STOP TRIP** upon arrival; session data will automatically compile into CSV and sync to Google Drive.
 
 ---
 
@@ -216,25 +222,30 @@ Repeat 3,600 times (1-second sampling interval)
 
 ---
 
-## โครงสร้างข้อมูลในไฟล์ CSV
+## โครงสร้างข้อมูลในไฟล์ CSV (มาตรฐานวิจัย 18 คอลัมน์)
 
-ไฟล์ข้อมูลส่งออก (CSV) มีโครงสร้างคอลัมน์มาตรฐานดังนี้:
+ไฟล์ข้อมูลส่งออก (CSV) มีโครงสร้าง 18 คอลัมน์มาตรฐานเดียวกันทั้งระบบ:
 
 | ชื่อคอลัมน์ | คำอธิบาย | ตัวอย่างข้อมูล |
 |:---|:---|:---|
-| `t_utc_ms` | ค่าเวลามาตรฐานสากล UTC (มิลลิวินาที) | `1729420000000` |
-| `t_mono_ns` | ค่าเวลานาฬิกาฮาร์ดแวร์ Monotonic Clock (นาโนวินาที) | `184729104820` |
-| `session_id` | รหัสรอบการบันทึกข้อมูล (Trip ID) | `1729420000000` |
-| `participant_id` | รหัสประจำตัวผู้ทดสอบ | `std_64010123` |
-| `platform` / `device_model` / `os_version` | รายละเอียดระบบปฏิบัติการ รุ่นอุปกรณ์ และเวอร์ชัน OS | `ios`, `iPhone15,5`, `18.1` |
-| `lat` / `lon` / `speed` / `accuracy` | พิกัด ความเร็ว และความแม่นยำจาก GPS | `18.79592`, `98.95267`, `1.79`, `9.5` |
-| `accel_x, y, z` | ค่าความเร่งตามแนวแกนสามมิติ (m/s²) | `0.21`, `0.08`, `9.81` |
-| `gyro_x, y, z` | ค่าความเร็วเชิงมุมรอบแกนสามมิติ (rad/s) | `0.01`, `-0.02`, `0.00` |
-| `bssid` | ที่อยู่ทางกายภาพ (MAC Address) ของเราเตอร์ Wi-Fi | `aa:bb:cc:dd:ee:ff` |
-| `ssid` | ชื่อเครือข่าย Wi-Fi | `Campus-WiFi` |
-| `rssi_raw` | ระดับความแรงสัญญาณ Wi-Fi ที่วัดได้ (dBm) | `-45` |
-| `rssi_source` | ช่องทางที่ได้รับข้อมูลสัญญาณ | `wifimanager` (Android) / `shortcut` (iOS) |
-| `user_label_mode` / `phone_position` | ป้ายกำกับโหมดการเดินทางและตำแหน่งจัดเก็บเครื่อง | `walk`, `pocket` |
+| `t_utc_ms` | ค่าเวลามาตรฐานสากล UTC (มิลลิวินาที) | `1793787785108` |
+| `timestamp` | วัน-เวลามาตรฐานสากล ISO 8601 UTC | `2026-11-04T10:23:05.108Z` |
+| `session_id` | รหัสรอบการบันทึกข้อมูล (Trip ID) | `TRIP-20261104-YAJA` |
+| `participant_id` | รหัสประจำตัวนักศึกษา (UserID) | `680631031` |
+| `platform` | ระบบปฏิบัติการ | `android`, `ios` |
+| `device_model` | รุ่นอุปกรณ์ฮาร์ดแวร์ | `OPPO CPH1823`, `Apple iPhone` |
+| `os_version` | เวอร์ชันระบบปฏิบัติการ | `Android 10`, `iOS 18.1` |
+| `lat` | พิกัดละติจูด GPS | `18.8029431` |
+| `lon` | พิกัดลองจิจูด GPS | `98.9924727` |
+| `speed` | ความเร็วการเคลื่อนที่ (km/h) ทศนิยมละเอียด | `0.20`, `1.19` |
+| `accuracy` | ความคลาดเคลื่อนพิกัด GPS (เมตร) | `14.0` |
+| `bssid` | MAC Address ของ Access Point Wi-Fi | `66:20:e1:95:ba:be` |
+| `ssid` | ชื่อเครือข่าย Wi-Fi | `Jakkapas_5G` |
+| `rssi_raw` | ระดับความแรงสัญญาณ Wi-Fi ที่วัดได้ (dBm) | `-76.0` |
+| `rssi_source` | แหล่งที่มาของสัญญาณ | `wifimanager`, `shortcut` |
+| `user_label_mode` | โหมดการเดินทางที่เลือก (Ground Truth) | `walk`, `bike`, `motorcycle`, `car` |
+| `phone_position` | ตำแหน่งพกพาโทรศัพท์ | `pocket`, `hand`, `bag` |
+| `note` | บันทึกบริบทสถานที่ | `อาคาร 3 ชั้น 4` |
 
 ---
 
@@ -242,9 +253,9 @@ Repeat 3,600 times (1-second sampling interval)
 
 | แพลตฟอร์ม / เครื่องมือ | ไฟล์ติดตั้ง | ลิงก์ดาวน์โหลด |
 |:---|:---|:---|
-| **Android** | `app-release.apk` | [ดาวน์โหลดไฟล์ APK โดยตรง](https://github.com/Kitsada4435/rssi_logger_app/raw/main/app-release.apk) |
-| **iOS (แอปพลิเคชัน)** | `Runner.ipa` | [ดาวน์โหลดไฟล์ IPA จาก Releases](https://github.com/Kitsada4435/rssi_logger_app/releases/download/v1.0.0/Runner.ipa) |
-| **iOS (คำสั่งลัด)** | `Send Rssi Logger App.shortcut` | [ดาวน์โหลดคำสั่งลัดผ่าน Safari](https://github.com/Kitsada4435/rssi_logger_app/raw/main/Send%20Rssi%20Logger%20App.shortcut) |
+| **Android** | `rssi-logger-android.apk` | [ดาวน์โหลดไฟล์ APK โดยตรง](https://rssi-web-logger.vercel.app/downloads/rssi-logger-android.apk) |
+| **iOS (เว็บแดชบอร์ด)** | แดชบอร์ด Safari | [เปิดแดชบอร์ดบน Safari](https://rssi-web-logger.vercel.app) |
+| **iOS (คำสั่งลัด)** | `Send Rssi Logger web.shortcut` | [ดาวน์โหลดคำสั่งลัดผ่าน Safari](https://rssi-web-logger.vercel.app/downloads/Send%20Rssi%20Logger%20web.shortcut) |
 
 ---
 
@@ -252,11 +263,12 @@ Repeat 3,600 times (1-second sampling interval)
 
 ### 1. ระบบปฏิบัติการ Android
 
-1. ดาวน์โหลดไฟล์ [app-release.apk](https://github.com/Kitsada4435/rssi_logger_app/raw/main/app-release.apk) และติดตั้งลงบนอุปกรณ์
-2. เปิดแอปพลิเคชัน และกำหนดสิทธิ์ **ตำแหน่งที่ตั้ง (Location)** เป็น **"อนุญาตตลอดเวลา" (Allow all the time)** เพื่อให้ระบบบันทึกพิกัดต่อเนื่องขณะปิดหน้าจอหรือสลับแอป
-3. ระบุ **Participant ID** และเลือกโหมดการเดินทางเริ่มต้น
-4. กดปุ่ม **START TRIP** เพื่อเริ่มบันทึกข้อมูล (สามารถแตะเปลี่ยนโหมดการเดินทางระหว่างบันทึกได้ตลอดเวลา)
-5. เมื่อเสร็จสิ้นรอบ ให้กดปุ่ม **STOP TRIP** ข้อมูลจะถูกบันทึกและแปลงเป็นไฟล์ CSV โดยอัตโนมัติ
+1. ดาวน์โหลดไฟล์ [rssi-logger-android.apk](https://rssi-web-logger.vercel.app/downloads/rssi-logger-android.apk) และติดตั้งลงบนอุปกรณ์
+2. เปิดแอปพลิเคชัน (เมื่อเปิดครั้งแรก ระบบจะแสดงกล่องให้กรอก **UserID / รหัสนักศึกษา** และจำไว้ตลอดไป)
+3. กำหนดสิทธิ์ **ตำแหน่งที่ตั้ง (Location)** เป็น **"อนุญาตตลอดเวลา" (Allow all the time)** เพื่อให้ระบบบันทึกพิกัดต่อเนื่อง
+4. สังเกตช่อง **UserID (รหัสนักศึกษา)** จะแสดง **กรอบสีเขียว** เมื่อระบุรหัสถูกต้อง หรือสีแดงหากยังไม่ระบุ
+5. กดปุ่ม **START TRIP** เพื่อเริ่มบันทึกข้อมูล (สามารถแตะเปลี่ยนโหมดการเดินทางระหว่างบันทึกได้ตลอดเวลา)
+6. เมื่อเสร็จสิ้นรอบ ให้กดปุ่ม **STOP TRIP** ข้อมูลจะถูกบันทึกเป็น CSV และซิงค์ขึ้น Google Drive ทันที
 
 ---
 

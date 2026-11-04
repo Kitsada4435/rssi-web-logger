@@ -212,7 +212,7 @@ wifi-telemetry-pipeline/
 │   ├── log.js                           # Telemetry ingestion and isolated delta polling
 │   ├── sync-drive.js                    # Batch Google Drive / Sheets sync proxy
 │   ├── logs.js                          # Backward-compatibility alias
-│   └── export.js                        # Isolated 26-column CSV export stream
+│   └── export.js                        # Isolated 18-column CSV export stream
 ├── public/                              # Web Dashboard Frontend (iOS / Desktop)
 │   ├── index.html                       # Minimalist high-contrast user interface
 │   ├── style.css                        # Mobile-optimized dark mode CSS
@@ -295,7 +295,7 @@ Proxies survey batch datasets to Google Apps Script.
   "webhook_url": "https://script.google.com/macros/s/.../exec",
   "trip_id": "TRIP-20261104-A9F2",
   "participant_id": "680631034",
-  "logs": [ ...array of 26-column telemetry entries... ]
+  "logs": [ ...array of 18-column telemetry entries... ]
 }
 ```
 
