@@ -3,7 +3,7 @@
 
 [![Vercel Deployment](https://img.shields.io/badge/Vercel-Production%20Ready-black?style=flat&logo=vercel)](https://rssi-web-logger.vercel.app)
 [![Node.js](https://img.shields.io/badge/Node.js-18.x%20%7C%2020.x-green?style=flat&logo=node.js)](https://nodejs.org)
-[![Platform Support](https://img.shields.io/badge/Platform-Android%20%7C%20iOS-blue?style=flat)](https://github.com/Kitsada4435/rssi-web-logger)
+[![Platform Support](https://img.shields.io/badge/Platform-Android%20%7C%20iOS-blue?style=flat)](https://github.com/Kitsada4435/wifi-telemetry-pipeline)
 [![Data Format](https://img.shields.io/badge/Schema-17%20Core%20Columns-success?style=flat)](#)
 
 ระบบรวบรวมข้อมูลโทรมาตร (Telemetry Pipeline) สำหรับงานวิจัยด้านโครงข่ายไร้สายและการระบุตำแหน่งภายในอาคาร (Indoor Localization) รองรับการบันทึกค่าความแรงสัญญาณ Wi-Fi RSSI ควบคู่กับพิกัดดาวเทียม GPS และโหมดการเคลื่อนไหว โดยแบ่งการทำงานตามข้อกำหนดของระบบปฏิบัติการออกเป็น 2 ระบบ: แอปพลิเคชันบน Android และเว็บแดชบอร์ดร่วมกับคำสั่งลัดบน iOS
