@@ -179,47 +179,150 @@ class _DashboardPageState extends State<DashboardPage> {
     super.dispose();
   }
 
+  bool _isValidUserId(String id) {
+    final clean = id.trim();
+    if (clean.length < 4) return false;
+    final lower = clean.toLowerCase();
+    if (lower == 'unknown' || lower == 'usr-anon') return false;
+    if (lower.startsWith('and-') || lower.startsWith('dev-') || lower.startsWith('ios-')) return false;
+    return true;
+  }
+
   Future<void> _loadParticipantId() async {
     final prefs = await SharedPreferences.getInstance();
-    String? id;
+    final savedId = prefs.getString('participant_id') ?? '';
+    final isConfigured = prefs.getBool('student_id_configured') ?? false;
 
-    // 1. Try reading Android Hardware ID (Settings.Secure.ANDROID_ID)
-    try {
-      const channel = MethodChannel('com.example.rssi_logger/device');
-      final String? hwId = await channel.invokeMethod<String>('getAndroidHardwareId');
-      if (hwId != null && hwId.isNotEmpty) {
-        id = hwId.length >= 8 ? hwId.substring(0, 8) : hwId;
+    if (savedId.isNotEmpty && _isValidUserId(savedId) && isConfigured) {
+      if (mounted) {
+        setState(() {
+          _participantController.text = savedId;
+        });
       }
-    } catch (e) {
-      debugPrint('Android HW ID error: $e');
+    } else {
+      if (mounted) {
+        setState(() {
+          _participantController.text = savedId;
+        });
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            _showFirstTimeStudentIdDialog();
+          }
+        });
+      }
     }
+  }
 
-    // 2. Check SharedPreferences if not found above
-    if (id == null || id.isEmpty) {
-      id = prefs.getString('participant_id');
-    }
+  Future<void> _showFirstTimeStudentIdDialog() async {
+    final dialogController = TextEditingController(text: _isValidUserId(_participantController.text) ? _participantController.text : '');
+    String? errorText;
 
-    // 3. Fallback: generate 8-char short UUID
-    if (id == null || id.isEmpty) {
-      id = const Uuid().v4().substring(0, 8);
-    }
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final text = dialogController.text.trim();
+            final isValid = _isValidUserId(text);
 
-    // 4. Save to SharedPreferences
-    await prefs.setString('participant_id', id);
-
-    if (mounted) {
-      setState(() {
-        _participantController.text = id!;
-      });
-    }
+            return PopScope(
+              canPop: false,
+              child: AlertDialog(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                title: const Row(
+                  children: [
+                    Icon(Icons.school_rounded, color: Color(0xFF10B981), size: 28),
+                    SizedBox(width: 10),
+                    Text('ระบุรหัสนักศึกษา', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+                  ],
+                ),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'กรุณาระบุรหัสนักศึกษา (UserID) เพื่อเริ่มต้นใช้งาน ระบบจะบันทึกจำไว้ตลอดไป',
+                      style: TextStyle(fontSize: 13, color: Colors.black87),
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: isValid ? const Color(0xFFECFDF5) : const Color(0xFFFEF2F2),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: isValid ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                          width: 2.0,
+                        ),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                      child: TextField(
+                        controller: dialogController,
+                        autofocus: true,
+                        keyboardType: TextInputType.text,
+                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1),
+                        decoration: InputDecoration(
+                          hintText: 'เช่น 680631031',
+                          border: InputBorder.none,
+                          suffixIcon: Icon(
+                            isValid ? Icons.check_circle_rounded : Icons.error_outline_rounded,
+                            color: isValid ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                          ),
+                        ),
+                        onChanged: (val) {
+                          setDialogState(() {
+                            errorText = _isValidUserId(val) ? null : 'กรุณากรอกรหัสนักศึกษาอย่างน้อย 4 หลัก';
+                          });
+                        },
+                      ),
+                    ),
+                    if (errorText != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6, left: 4),
+                        child: Text(errorText!, style: const TextStyle(color: Colors.red, fontSize: 11, fontWeight: FontWeight.bold)),
+                      ),
+                  ],
+                ),
+                actions: [
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isValid ? const Color(0xFF10B981) : Colors.grey.shade400,
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size(double.infinity, 44),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: isValid
+                        ? () async {
+                            final clean = dialogController.text.trim();
+                            final prefs = await SharedPreferences.getInstance();
+                            await prefs.setString('participant_id', clean);
+                            await prefs.setBool('student_id_configured', true);
+                            if (mounted) {
+                              setState(() {
+                                _participantController.text = clean;
+                              });
+                              Navigator.of(ctx).pop();
+                            }
+                          }
+                        : null,
+                    child: const Text('บันทึกรหัสนักศึกษา (Save UserID)', style: TextStyle(fontWeight: FontWeight.w900)),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   Future<void> _updateParticipantId(String newId) async {
     final cleanId = newId.trim();
-    if (cleanId.isEmpty) return;
-
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('participant_id', cleanId);
+    if (_isValidUserId(cleanId)) {
+      await prefs.setBool('student_id_configured', true);
+    }
   }
 
   void _toggleRecording() async {
@@ -442,7 +545,7 @@ class _DashboardPageState extends State<DashboardPage> {
               // Setup Panel (Hides when recording to maximize space)
               if (!_isRecording)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   decoration: BoxDecoration(
                     color: Colors.grey.shade50,
                     borderRadius: BorderRadius.circular(16),
@@ -451,30 +554,68 @@ class _DashboardPageState extends State<DashboardPage> {
                   child: Row(
                     children: [
                       Expanded(
-                        flex: 3,
-                        child: TextField(
-                          controller: _participantController,
-                          readOnly: false,
-                          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Colors.black87),
-                          decoration: const InputDecoration(
-                            labelText: 'USER ID (แก้ไขได้)',
-                            border: InputBorder.none,
-                            isDense: true,
-                            contentPadding: EdgeInsets.zero,
-                            labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                            suffixIcon: Icon(Icons.edit, size: 14, color: Colors.blueAccent),
-                            suffixIconConstraints: BoxConstraints(minWidth: 16, minHeight: 16),
+                        flex: 5,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: _isValidUserId(_participantController.text)
+                                ? const Color(0xFFECFDF5)
+                                : const Color(0xFFFEF2F2),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: _isValidUserId(_participantController.text)
+                                  ? const Color(0xFF10B981)
+                                  : const Color(0xFFEF4444),
+                              width: 1.8,
+                            ),
                           ),
-                          onChanged: _updateParticipantId,
+                          child: TextField(
+                            controller: _participantController,
+                            readOnly: false,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 13,
+                              color: _isValidUserId(_participantController.text)
+                                  ? const Color(0xFF047857)
+                                  : const Color(0xFFB91C1C),
+                            ),
+                            decoration: InputDecoration(
+                              labelText: 'UserID (รหัสนักศึกษา)',
+                              border: InputBorder.none,
+                              isDense: true,
+                              contentPadding: EdgeInsets.zero,
+                              labelStyle: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 10,
+                                color: _isValidUserId(_participantController.text)
+                                    ? const Color(0xFF059669)
+                                    : const Color(0xFFDC2626),
+                              ),
+                              suffixIcon: Icon(
+                                _isValidUserId(_participantController.text)
+                                    ? Icons.check_circle_rounded
+                                    : Icons.error_rounded,
+                                size: 16,
+                                color: _isValidUserId(_participantController.text)
+                                    ? const Color(0xFF10B981)
+                                    : const Color(0xFFEF4444),
+                              ),
+                              suffixIconConstraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                            ),
+                            onChanged: (val) {
+                              _updateParticipantId(val);
+                              setState(() {});
+                            },
+                          ),
                         ),
                       ),
-                      Container(width: 1, height: 30, color: Colors.grey.shade300, margin: const EdgeInsets.symmetric(horizontal: 12)),
+                      Container(width: 1, height: 32, color: Colors.grey.shade300, margin: const EdgeInsets.symmetric(horizontal: 10)),
                       Expanded(
                         flex: 4,
                         child: DropdownButtonFormField<String>(
                           value: _phonePosition,
-                          decoration: const InputDecoration(labelText: 'POSITION', border: InputBorder.none, isDense: true, contentPadding: EdgeInsets.zero, labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Colors.black87),
+                          decoration: const InputDecoration(labelText: 'POSITION', border: InputBorder.none, isDense: true, contentPadding: EdgeInsets.zero, labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Colors.black87),
                           icon: const Icon(Icons.expand_more, size: 20),
                           items: const [
                             DropdownMenuItem(value: 'pocket', child: Text('Pocket')),

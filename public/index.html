@@ -76,16 +76,16 @@
 
       <!-- SETUP CARD: Identity & Transit Mode -->
       <section class="card-clean card-setup">
-        <!-- Participant Device ID -->
+        <!-- Participant UserID (Student ID) -->
         <div class="setup-row">
           <div class="setup-label-group">
-            <label for="participant-id-input" class="label-clean">รหัสเครื่อง (Device ID)</label>
-            <span class="id-lock-badge font-mono" id="id-saved-badge">✓ ผูกถาวร</span>
+            <label for="participant-id-input" class="label-clean">UserID (รหัสนักศึกษา)</label>
+            <span class="id-lock-badge font-mono" id="id-saved-badge">✓ บันทึกถาวร</span>
           </div>
           <div class="input-inline-wrap">
-            <input type="text" id="participant-id-input" class="input-clean font-mono" placeholder="IOS-7A2B" autocomplete="off" spellcheck="false">
+            <input type="text" id="participant-id-input" class="input-clean font-mono" placeholder="เช่น 680631031" autocomplete="off" spellcheck="false">
             <button type="button" class="btn-ghost-sm" id="btn-copy-id" title="คัดลอก">📋</button>
-            <button type="button" class="btn-ghost-sm" id="btn-reset-hw-id" title="รีเซ็ตเป็นรหัสเครื่อง">🔒</button>
+            <button type="button" class="btn-ghost-sm" id="btn-reset-hw-id" title="กรอกรหัสนักศึกษาใหม่">✏️</button>
           </div>
         </div>
 
@@ -262,6 +262,20 @@
       <span>RSSI Logger &bull; Minimalist Telemetry Pipeline</span>
     </footer>
 
+  </div>
+
+  <!-- First-Time Student ID Setup Modal -->
+  <div id="first-time-modal" class="modal-backdrop" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-icon">🎓</div>
+      <h3 class="modal-title">ระบุรหัสนักศึกษา (UserID)</h3>
+      <p class="modal-desc">กรุณาระบุ <b>รหัสนักศึกษา</b> เพื่อเริ่มต้นบันทึกข้อมูล<br>ระบบจะบันทึกจำไว้ตลอดไปโดยไม่ต้องกรอกซ้ำ</p>
+      <div class="modal-input-wrap">
+        <input type="text" id="modal-student-id-input" class="modal-input font-mono" placeholder="เช่น 680631031" autocomplete="off">
+        <div id="modal-error-msg" class="modal-error-msg" style="display: none;">กรุณากรอกรหัสนักศึกษาอย่างน้อย 4 หลัก</div>
+      </div>
+      <button type="button" id="modal-btn-save" class="modal-btn-confirm" disabled>บันทึกรหัสนักศึกษา</button>
+    </div>
   </div>
 
   <script src="app.js"></script>

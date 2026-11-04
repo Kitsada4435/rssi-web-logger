@@ -21,6 +21,29 @@ document.addEventListener('DOMContentLoaded', () => {
     return `${prefix}-${hex}`;
   }
 
+  // Helper: Haversine Great-Circle Distance (in meters)
+  function calcHaversineDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371000; // Earth radius in meters
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  // Student ID / UserID Validation Helper
+  function isStudentIdValid(id) {
+    if (!id) return false;
+    const clean = String(id).trim();
+    if (clean.length < 4) return false;
+    const lower = clean.toLowerCase();
+    if (lower === 'unknown' || lower === 'usr-anon') return false;
+    if (/^(ios|and|dev)-[0-9a-z]{4}$/i.test(clean)) return false;
+    return true;
+  }
+
   // Cookie helpers for 10-year persistence
   function setCookie(name, val) {
     document.cookie = `${name}=${encodeURIComponent(val)}; path=/; max-age=315360000; SameSite=Lax`;
@@ -31,7 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return matches ? decodeURIComponent(matches[1]) : null;
   }
 
-  // 2. Initialize Permanent Participant ID
+  // 2. Initialize Permanent Participant UserID
   function initParticipantId() {
     // 1. Check URL query parameters (?id=... or ?participant_id=...)
     const urlParams = new URLSearchParams(window.location.search);
@@ -39,28 +62,32 @@ document.addEventListener('DOMContentLoaded', () => {
     if (urlId && urlId.trim()) {
       const clean = urlId.trim();
       localStorage.setItem('rssi_participant_id', clean);
+      if (isStudentIdValid(clean)) {
+        localStorage.setItem('rssi_student_id_configured', 'true');
+      }
       setCookie('rssi_participant_id', clean);
       return clean;
     }
 
     // 2. Check localStorage
     const savedLocal = localStorage.getItem('rssi_participant_id');
-    if (savedLocal && savedLocal.trim()) {
+    if (savedLocal && savedLocal.trim() && isStudentIdValid(savedLocal.trim())) {
       return savedLocal.trim();
     }
 
     // 3. Check Cookie
     const savedCookie = getCookie('rssi_participant_id');
-    if (savedCookie && savedCookie.trim()) {
+    if (savedCookie && savedCookie.trim() && isStudentIdValid(savedCookie.trim())) {
       localStorage.setItem('rssi_participant_id', savedCookie.trim());
       return savedCookie.trim();
     }
 
-    // 4. Default: Deterministic Hardware Fingerprint (Same phone = Same ID always!)
-    const hwId = getHardwareFingerprint();
-    localStorage.setItem('rssi_participant_id', hwId);
-    setCookie('rssi_participant_id', hwId);
-    return hwId;
+    // 4. Fallback if previously saved non-student ID
+    if (savedLocal && savedLocal.trim()) {
+      return savedLocal.trim();
+    }
+
+    return '';
   }
 
   // Application State
@@ -187,13 +214,38 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Geolocation Tracker (Pure Satellite Hardware - 0 MB Cellular Data Used)
+  let lastGeoPos = null;
+  let lastGeoTime = null;
+
   function startGeoTracking() {
     if ('geolocation' in navigator) {
       state.watchId = navigator.geolocation.watchPosition(
         (pos) => {
           const lat = pos.coords.latitude;
           const lng = pos.coords.longitude;
-          const speedNum = pos.coords.speed !== null && !isNaN(pos.coords.speed) ? pos.coords.speed * 3.6 : 0.0;
+          const now = pos.timestamp || Date.now();
+          let speedNum = 0.0;
+
+          // 1. Native speed if provided by hardware (> 0)
+          if (pos.coords.speed !== null && !isNaN(pos.coords.speed) && pos.coords.speed > 0) {
+            speedNum = pos.coords.speed * 3.6;
+          } else if (lastGeoPos && lastGeoTime) {
+            // 2. Kinematic calculation for iOS Safari (dt >= 0.8s, ignore micro-drift < 0.6m)
+            const dt = (now - lastGeoTime) / 1000;
+            if (dt >= 0.8) {
+              const dist = calcHaversineDistance(lastGeoPos.lat, lastGeoPos.lng, lat, lng);
+              if (dist >= 0.6) {
+                speedNum = (dist / dt) * 3.6;
+              }
+            }
+          }
+
+          if (lastGeoPos === null || (now - lastGeoTime) >= 800) {
+            lastGeoPos = { lat, lng };
+            lastGeoTime = now;
+          }
+
+          if (speedNum > 180) speedNum = 0.0; // Filter unreasonable GPS telemetry jumps
           const speed = speedNum.toFixed(2);
           const acc = pos.coords.accuracy ? Math.round(pos.coords.accuracy) : 5;
 
@@ -275,9 +327,13 @@ document.addEventListener('DOMContentLoaded', () => {
       entry.longitude = state.currentLocation.lng;
     }
 
-    // Speed & Accuracy
-    if (entry.speed === undefined || entry.speed === null) {
-      entry.speed = state.currentLocation ? state.currentLocation.speed : 0.0;
+    // Speed & Accuracy (Adopt kinematic speed when shortcut or client sends 0/null)
+    if (entry.speed === undefined || entry.speed === null || Number(entry.speed) === 0) {
+      if (state.currentLocation && Number(state.currentLocation.speed) > 0) {
+        entry.speed = state.currentLocation.speed;
+      } else {
+        entry.speed = entry.speed !== undefined && entry.speed !== null ? entry.speed : '0.00';
+      }
     }
     if (entry.accuracy === undefined || entry.accuracy === null) {
       entry.accuracy = state.currentLocation ? state.currentLocation.accuracy : 5;
@@ -535,38 +591,107 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // 10. Participant ID Management (Permanent Persistence)
+  // 10. UserID Management & Validation (Red = Empty/Invalid, Green = Valid Student ID)
   function updateServerUrlDisplay() {
     const url = `${window.location.origin}/api/log?participant_id=${encodeURIComponent(state.participantId)}&rssi=[ความแรงสัญญาณ]&bssid=[BSSID]&ssid=[ชื่อ Wi-Fi]`;
     if (el.serverUrlDisplay) el.serverUrlDisplay.textContent = url;
   }
 
+  function updateUserIdValidationUI(val) {
+    const isValid = isStudentIdValid(val);
+    if (el.participantInput) {
+      if (isValid) {
+        el.participantInput.classList.remove('input-invalid');
+        el.participantInput.classList.add('input-valid');
+        if (el.idSavedBadge) {
+          el.idSavedBadge.textContent = '✓ บันทึกถาวร';
+          el.idSavedBadge.style.color = '#10b981';
+        }
+      } else {
+        el.participantInput.classList.remove('input-valid');
+        el.participantInput.classList.add('input-invalid');
+        if (el.idSavedBadge) {
+          el.idSavedBadge.textContent = '⚠️ ระบุรหัสนักศึกษา';
+          el.idSavedBadge.style.color = '#ef4444';
+        }
+      }
+    }
+  }
+
+  // First-Time Student ID Onboarding Modal Handler
+  function checkFirstTimeStudentId() {
+    const isConfigured = localStorage.getItem('rssi_student_id_configured') === 'true';
+    const currentId = state.participantId;
+    const modal = document.getElementById('first-time-modal');
+    const modalInput = document.getElementById('modal-student-id-input');
+    const modalBtn = document.getElementById('modal-btn-save');
+    const modalErr = document.getElementById('modal-error-msg');
+
+    if (!isConfigured || !isStudentIdValid(currentId)) {
+      if (modal && modalInput && modalBtn) {
+        modal.style.display = 'flex';
+        modalInput.value = isStudentIdValid(currentId) ? currentId : '';
+
+        const validateModalInput = () => {
+          const val = modalInput.value.trim();
+          const valid = isStudentIdValid(val);
+          modalBtn.disabled = !valid;
+          if (valid) {
+            modalInput.classList.remove('input-invalid');
+            modalInput.classList.add('input-valid');
+            if (modalErr) modalErr.style.display = 'none';
+          } else {
+            modalInput.classList.remove('input-valid');
+            modalInput.classList.add('input-invalid');
+            if (modalErr && val.length > 0) modalErr.style.display = 'block';
+          }
+        };
+
+        modalInput.addEventListener('input', validateModalInput);
+        validateModalInput();
+
+        const saveStudentId = () => {
+          const val = modalInput.value.trim();
+          if (isStudentIdValid(val)) {
+            state.participantId = val;
+            localStorage.setItem('rssi_participant_id', val);
+            localStorage.setItem('rssi_student_id_configured', 'true');
+            setCookie('rssi_participant_id', val);
+            if (el.participantInput) el.participantInput.value = val;
+            updateUserIdValidationUI(val);
+            updateServerUrlDisplay();
+            modal.style.display = 'none';
+          }
+        };
+
+        modalBtn.addEventListener('click', saveStudentId);
+        modalInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') saveStudentId();
+        });
+        setTimeout(() => modalInput.focus(), 300);
+      }
+    } else {
+      updateUserIdValidationUI(currentId);
+    }
+  }
+
   if (el.participantInput) {
     el.participantInput.value = state.participantId;
+    updateUserIdValidationUI(state.participantId);
     updateServerUrlDisplay();
 
-    const showSavedIndicator = (msg = '✓ บันทึกถาวร') => {
-      if (el.idSavedBadge) {
-        el.idSavedBadge.textContent = msg;
-        el.idSavedBadge.style.color = '#10b981';
-        setTimeout(() => {
-          el.idSavedBadge.textContent = '✓ ผูกกับเครื่องถาวร';
-          el.idSavedBadge.style.color = 'var(--accent-cyan)';
-        }, 1500);
-      }
-    };
-
     el.participantInput.addEventListener('input', (e) => {
-      const val = e.target.value.trim() || getHardwareFingerprint();
-      if (val !== state.participantId) {
-        state.participantId = val;
+      const val = e.target.value.trim();
+      state.participantId = val;
+      if (isStudentIdValid(val)) {
         localStorage.setItem('rssi_participant_id', val);
+        localStorage.setItem('rssi_student_id_configured', 'true');
         setCookie('rssi_participant_id', val);
-        lastProcessedId = 0;
-        resetData();
-        showSavedIndicator('✓ อัปเดตรหัสแล้ว');
-        updateServerUrlDisplay();
       }
+      updateUserIdValidationUI(val);
+      lastProcessedId = 0;
+      resetData();
+      updateServerUrlDisplay();
     });
 
     if (el.btnCopyId) {
@@ -580,16 +705,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (el.btnResetHwId) {
       el.btnResetHwId.addEventListener('click', () => {
-        const hwId = getHardwareFingerprint();
-        if (hwId !== state.participantId) {
-          state.participantId = hwId;
-          el.participantInput.value = hwId;
-          localStorage.setItem('rssi_participant_id', hwId);
-          setCookie('rssi_participant_id', hwId);
-          lastProcessedId = 0;
-          resetData();
-          showSavedIndicator('✓ คืนค่ารหัสเครื่อง');
-          updateServerUrlDisplay();
+        const modal = document.getElementById('first-time-modal');
+        const modalInput = document.getElementById('modal-student-id-input');
+        if (modal && modalInput) {
+          modal.style.display = 'flex';
+          modalInput.value = state.participantId || '';
+          modalInput.focus();
         }
       });
     }
@@ -860,6 +981,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Boot Application
   detectOS();
+  checkFirstTimeStudentId();
   startGeoTracking();
   startImuTracking();
   startTelemetryEngine();
