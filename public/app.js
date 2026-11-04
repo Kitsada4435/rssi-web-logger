@@ -167,12 +167,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 5. Ingest Telemetry Entry (Text-First Display)
   function ingestEntry(entry) {
-    if (entry.participant_id && entry.participant_id !== 'USR-ANON' && entry.participant_id !== 'USR-DEFAULT') {
-      state.participantId = entry.participant_id;
-      if (el.participantInput) el.participantInput.value = entry.participant_id;
-    } else {
-      entry.participant_id = state.participantId;
-    }
+    // Retain client-defined participant ID, never let incoming packets overwrite it
+    entry.participant_id = state.participantId || entry.participant_id || 'USR-ANON';
     if (!entry.trip_id || entry.trip_id === 'TRIP-DEFAULT') {
       entry.trip_id = state.tripId;
     }
