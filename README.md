@@ -356,20 +356,35 @@ RSSI Web Logger/
 ├── package.json                         # Node.js dependencies and npm scripts
 ├── server.js                            # Local development Express server and proxy
 ├── vercel.json                          # Vercel Serverless rewrite configurations
-├── Send Rssi Logger Web.shortcut        # Pre-configured iOS Shortcut template
-├── api/                                 # Vercel Serverless Functions
-│   ├── log.js                           # Unified telemetry ingestion and polling
+├── api/                                 # Vercel Serverless Functions (Website API)
+│   ├── log.js                           # Telemetry ingestion & multi-user polling
 │   ├── sync-drive.js                    # Batch Google Drive / Sheets sync proxy
 │   ├── logs.js                          # Backward-compatibility alias
 │   └── export.js                        # CSV generation and download stream
-├── public/                              # Mobile Web Dashboard Assets
+├── public/                              # Web Dashboard Frontend (iOS / Browser)
 │   ├── index.html                       # Minimalist UI markup
 │   ├── style.css                        # Zero-overflow CSS design system
 │   ├── app.js                           # State controller, GPS tracker, and polling
-│   └── downloads/                       # Direct client download bundles
-│       ├── Send Rssi Logger Web.shortcut
-│       ├── rssi-logger-android.apk
-│       └── macrodroid_guide.txt
+│   └── downloads/                       # Client download bundles
+│       ├── Send Rssi Logger Web.shortcut # iOS Shortcut
+│       ├── rssi-logger-android.apk      # Standalone Android Logger APK
+│       └── macrodroid_guide.txt         # Alternative Android macro guide
+├── mobile_app/                          # Android Application Source Code (Flutter)
+│   ├── android/                         # Native Android Gradle configuration
+│   ├── ios/                             # Native iOS configuration
+│   ├── lib/                             # Dart application source (Sensors, Cloud, UI)
+│   │   ├── main.dart                    # App entry point
+│   │   ├── sensor_manager.dart          # Wi-Fi, GPS, IMU collection
+│   │   ├── cloud_manager.dart           # Direct Google Drive upload engine
+│   │   └── export_manager.dart          # Local CSV export engine
+│   └── pubspec.yaml                     # Flutter package dependencies
+├── docs/                                # Research Documentation & References
+│   ├── Phase_0_Research_Proposal_And_Specs.md
+│   ├── Phase_1_App_Development_And_Pipeline.md
+│   ├── Phase_2_Data_Collection_And_ML_Pipeline.md
+│   ├── RESEARCH_TITLES_AND_CONCEPTS.md
+│   └── 4Inferring_Trips_and_Origin-Destination_Flows_...pdf
+├── dataset/                             # Sample Test Datasets (CSV)
 └── scripts/
     ├── google_drive_script.js           # Google Apps Script code for Google Drive
     └── test_ping.py                     # Python telemetry simulation utility

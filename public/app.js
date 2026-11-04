@@ -807,7 +807,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (osIcon) osIcon.textContent = '🤖';
       if (osTitle) osTitle.textContent = 'อุปกรณ์ Android';
-      if (osDesc) osDesc.textContent = 'แตะติดตั้ง Companion APK เพื่อส่งค่า Wi-Fi เข้าเว็บ';
+      if (osDesc) osDesc.textContent = 'แตะติดตั้ง APK เพื่อบันทึกข้อมูลในแอปได้ทันที (จบในแอปเดียว)';
       if (btnAndroid) btnAndroid.classList.add('highlight');
       if (btnIos) btnIos.style.opacity = '0.45';
     } else {

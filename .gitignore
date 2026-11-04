@@ -8,3 +8,21 @@ dist/
 .env.local
 .env.*.local
 *.csv
+!dataset/*.csv
+
+# Mobile App & Flutter Build Artefacts
+mobile_app/build/
+mobile_app/.dart_tool/
+mobile_app/.idea/
+mobile_app/android/.gradle/
+mobile_app/android/local.properties
+mobile_app/android/app/release/
+mobile_app/ios/Pods/
+mobile_app/ios/.symlinks/
+mobile_app/ios/Flutter/Flutter.framework
+mobile_app/ios/Flutter/Flutter.podspec
+**/build/
+**/.dart_tool/
+**/.gradle/
+*.apk
+!public/downloads/rssi-logger-android.apk
