@@ -1,171 +1,157 @@
-# Wi-Fi and GPS Telemetry Pipeline for Indoor Localization Research
+# โครงการพัฒนาระบบรวบรวมข้อมูลสัญญาณ Wi-Fi และพิกัดตำแหน่งสำหรับงานวิจัยการระบุตำแหน่งภายในอาคาร
+# (Wi-Fi and GPS Telemetry Pipeline for Indoor Localization Research)
 
 [![Vercel Deployment](https://img.shields.io/badge/Vercel-Production%20Ready-black?style=flat&logo=vercel)](https://rssi-web-logger.vercel.app)
 [![Node.js](https://img.shields.io/badge/Node.js-18.x%20%7C%2020.x-green?style=flat&logo=node.js)](https://nodejs.org)
-[![Platform Support](https://img.shields.io/badge/Platform-iOS%20%7C%20Android%20%7C%20Web-blue?style=flat)](https://github.com/Kitsada4435/rssi-web-logger)
+[![Platform Support](https://img.shields.io/badge/Platform-Android%20%7C%20iOS-blue?style=flat)](https://github.com/Kitsada4435/rssi-web-logger)
 [![Data Format](https://img.shields.io/badge/Schema-17%20Core%20Columns-success?style=flat)](#)
 
-Unified Telemetry Architecture for indoor and outdoor wireless signal mapping, mobility tracking, and Wi-Fi fingerprinting research. Combines a standalone Android Application (Flutter) and an iOS Web Dashboard Pipeline (Apple Shortcuts + Vercel Serverless) into a single monorepo.
+ระบบรวบรวมข้อมูลโทรมาตร (Telemetry Pipeline) สำหรับงานวิจัยด้านโครงข่ายไร้สายและการระบุตำแหน่งภายในอาคาร (Indoor Localization) รองรับการบันทึกค่าความแรงสัญญาณ Wi-Fi RSSI ควบคู่กับพิกัดดาวเทียม GPS และโหมดการเคลื่อนไหว โดยแบ่งการทำงานตามข้อกำหนดของระบบปฏิบัติการออกเป็น 2 ระบบ: แอปพลิเคชันบน Android และเว็บแดชบอร์ดร่วมกับคำสั่งลัดบน iOS
 
 ---
 
-### Language / ภาษา
-* [คู่มือภาษาไทย (Thai Guide)](#คู่มือภาษาไทย-thai-guide)
-* [Developer and Technical Guide (English)](#developer-and-technical-guide-english)
+### เอกสารคู่มือ / Documentation
+* [คู่มือการปฏิบัติงานภาษาไทย (Thai Operational Guide)](#คู่มือการปฏิบัติงานภาษาไทย)
+* [Technical and Developer Guide (English)](#technical-and-developer-guide-english)
 
 ---
 
-<a name="คู่มือภาษาไทย-thai-guide"></a>
-# คู่มือภาษาไทย (Thai Guide)
+<a name="คู่มือการปฏิบัติงานภาษาไทย"></a>
+# คู่มือการปฏิบัติงานภาษาไทย
 
-เอกสารฉบับนี้จัดทำขึ้นสำหรับนักศึกษาผู้ร่วมเก็บข้อมูลภาคสนาม และนักวิจัยที่พัฒนาระบบต่อยอด
+เอกสารฉบับนี้จัดทำขึ้นเพื่อเป็นแนวทางปฏิบัติสำหรับผู้เข้าร่วมการทดลองเก็บข้อมูลภาคสนาม และนักวิจัยผู้พัฒนาระบบ
 
 ---
 
 ## สารบัญ
-1. [โครงสร้างสถาปัตยกรรมและการแบ่งสายอุปกรณ์](#1-โครงสร้างสถาปัตยกรรมและการแบ่งสายอุปกรณ์)
-2. [แนวทางปฏิบัติภาคสนามสำหรับนักศึกษา (Field Protocol)](#2-แนวทางปฏิบัติภาคสนามสำหรับนักศึกษา-field-protocol)
-   * [สายที่ 1: สำหรับสมาร์ตโฟน Android (ใช้งานผ่านแอปพลิเคชันเดี่ยว จบในตัว)](#สายที่-1-สำหรับสมาร์ตโฟน-android)
-   * [สายที่ 2: สำหรับ iPhone / iPad (ใช้งานผ่านเว็บ Safari และคำสั่งลัด)](#สายที่-2-สำหรับ-iphone--ipad-ios-17)
-3. [โครงสร้างข้อมูลมาตรฐานวิจัย 17 คอลัมน์ (Data Schema)](#3-โครงสร้างข้อมูลมาตรฐานวิจัย-17-คอลัมน์-data-schema)
-4. [การจัดเก็บข้อมูลบน Google Drive และ Google Sheets](#4-การจัดเก็บข้อมูลบน-google-drive-และ-google-sheets)
-5. [การจัดการความซ้ำซ้อนของ Repository](#5-การจัดการความซ้ำซ้อนของ-repository)
+1. [สถาปัตยกรรมและการแบ่งส่วนการทำงาน](#1-สถาปัตยกรรมและการแบ่งส่วนการทำงาน)
+2. [ขั้นตอนการติดตั้งและการเก็บข้อมูลภาคสนาม](#2-ขั้นตอนการติดตั้งและการเก็บข้อมูลภาคสนาม)
+   * [2.1 ขั้นตอนสำหรับอุปกรณ์ Android (ใช้งานผ่านแอปพลิเคชัน)](#21-ขั้นตอนสำหรับอุปกรณ์-android)
+   * [2.2 ขั้นตอนสำหรับอุปกรณ์ iOS / iPhone (ใช้งานผ่าน Safari และคำสั่งลัด)](#22-ขั้นตอนสำหรับอุปกรณ์-ios--iphone)
+3. [ข้อกำหนดโครงสร้างข้อมูล 17 คอลัมน์ (Data Schema Specification)](#3-ข้อกำหนดโครงสร้างข้อมูล-17-คอลัมน์)
+4. [โครงสร้างการจัดเก็บข้อมูลบน Google Drive](#4-โครงสร้างการจัดเก็บข้อมูลบน-google-drive)
 
 ---
 
-## 1. โครงสร้างสถาปัตยกรรมและการแบ่งสายอุปกรณ์
+## 1. สถาปัตยกรรมและการแบ่งส่วนการทำงาน
 
-เนื่องจากข้อกำหนดความปลอดภัยของระบบปฏิบัติการมือถือ (Mobile OS Sandbox) มีความแตกต่างกันอย่างสิ้นเชิง ระบบจึงถูกออกแบบให้แยกกระบวนการทำงานออกเป็น 2 สายที่เหมาะสมกับฮาร์ดแวร์ที่สุด โดยที่ผู้ใช้ไม่ต้องสลับหน้าจอไปมา:
+เนื่องจากระบบความปลอดภัยของเบราว์เซอร์สากล (W3C Security Sandbox) ไม่อนุญาตให้หน้าเว็บเข้าถึงการสแกนฮาร์ดแวร์ Wi-Fi ได้โดยตรง โครงการจึงออกแบบระบบให้รองรับการเก็บข้อมูลตามคุณลักษณะของแต่ละแพลตฟอร์ม:
 
 ```mermaid
 flowchart TD
-    subgraph AndroidPath ["สายที่ 1: อุปกรณ์ Android (Native App)"]
-        A1["ติดตั้งแอป RSSI Logger (APK)"] --> A2["เปิดแอป พิมพ์รหัสนักศึกษา"]
-        A2 --> A3["กด START บันทึกในแอป"]
-        A3 --> A4["เดินสำรวจตามเส้นทาง"]
-        A4 --> A5["กด STOP บันทึกในแอป"]
-        A5 --> A6["แอปอัปโหลดเข้า Google Drive อัตโนมัติ"]
+    subgraph AndroidSystem ["ระบบปฏิบัติการ Android (แอปพลิเคชันเดี่ยว)"]
+        A1["ติดตั้งแอปพลิเคชัน RSSI Logger"] --> A2["เปิดแอปพลิเคชันและระบุรหัสนักศึกษา"]
+        A2 --> A3["กด START TRIP เพื่อเริ่มบันทึก"]
+        A3 --> A4["เดินสำรวจตามเส้นทางที่กำหนด"]
+        A4 --> A5["กด STOP TRIP เมื่อสิ้นสุดเส้นทาง"]
+        A5 --> A6["แอปพลิเคชันอัปโหลดไฟล์เข้า Google Drive อัตโนมัติ"]
     end
 
-    subgraph iOSPath ["สายที่ 2: อุปกรณ์ iOS / iPhone (Web + Shortcut)"]
-        B1["ติดตั้งคำสั่งลัด Send RSSI Web"] --> B2["เปิดหน้าเว็บ Dashboard บน Safari"]
-        B2 --> B3["กด START TRIP บนเว็บ & กด Play ในคำสั่งลัด"]
-        B3 --> B4["เดินสำรวจตามเส้นทาง"]
-        B4 --> B5["กด STOP TRIP บนเว็บ"]
-        B5 --> B6["เว็บส่งเข้า Google Drive อัตโนมัติ"]
+    subgraph iOSSystem ["ระบบปฏิบัติการ iOS / iPhone (เว็บแดชบอร์ดและคำสั่งลัด)"]
+        B1["ติดตั้งคำสั่งลัด Send RSSI Web"] --> B2["เปิดหน้าเว็บแดชบอร์ดบน Safari"]
+        B2 --> B3["กด START TRIP บนเว็บ และกดสั่งทำงานคำสั่งลัด"]
+        B3 --> B4["เดินสำรวจตามเส้นทางที่กำหนด"]
+        B4 --> B5["กด STOP TRIP บนเว็บเมื่อสิ้นสุดเส้นทาง"]
+        B5 --> B6["เว็บส่งข้อมูลเข้า Google Drive อัตโนมัติ"]
     end
 
-    A6 --> CentralStorage["Google Drive: dataset/ & Google Sheets"]
-    B6 --> CentralStorage
+    A6 --> Storage["Google Drive: dataset/ และ Google Sheets"]
+    B6 --> Storage
 ```
 
 ---
 
-## 2. แนวทางปฏิบัติภาคสนามสำหรับนักศึกษา (Field Protocol)
+## 2. ขั้นตอนการติดตั้งและการเก็บข้อมูลภาคสนาม
 
-<a name="สายที่-1-สำหรับสมาร์ตโฟน-android"></a>
-### สายที่ 1: สำหรับสมาร์ตโฟน Android (ใช้งานผ่านแอปพลิเคชันเดี่ยว จบในตัว)
+<a name="21-ขั้นตอนสำหรับอุปกรณ์-android"></a>
+### 2.1 ขั้นตอนสำหรับอุปกรณ์ Android (ใช้งานผ่านแอปพลิเคชันเดี่ยว)
 
-ผู้ใช้ Android ไม่จำเป็นต้องเปิดเว็บเบราว์เซอร์ ให้ใช้งานผ่านแอปพลิเคชันตัวเดียวจบ 100%:
+ผู้ใช้อุปกรณ์ Android ดำเนินการผ่านแอปพลิเคชันเดี่ยวโดยตรง ไม่ต้องเปิดเว็บเบราว์เซอร์
 
-#### ขั้นตอนการติดตั้ง (ทำครั้งแรกครั้งเดียว)
-1. ดาวน์โหลดไฟล์ `rssi-logger-android.apk` จากหน้าเว็บ `https://rssi-web-logger.vercel.app` หรือจากโฟลเดอร์โครงการ
-2. แตะติดตั้งไฟล์ APK ลงในโทรศัพท์
-3. ไปที่ **การตั้งค่า (Settings)** ของมือถือ > **แอป (Apps)** > **RSSI Logger** > **สิทธิ์ (Permissions)**:
+#### ลิงก์ดาวน์โหลด
+* **ดาวน์โหลดไฟล์ติดตั้ง:** [rssi-logger-android.apk](https://rssi-web-logger.vercel.app/downloads/rssi-logger-android.apk) (ไฟล์สำรองในระบบ: [`public/downloads/rssi-logger-android.apk`](public/downloads/rssi-logger-android.apk))
+
+#### การติดตั้งและกำหนดสิทธิ์ (ดำเนินการครั้งแรกเพียงครั้งเดียว)
+1. ดาวน์โหลดไฟล์ `rssi-logger-android.apk` ตามลิงก์ด้านบน และดำเนินการติดตั้งลงบนโทรศัพท์
+2. เข้าไปที่ **การตั้งค่า (Settings)** ของโทรศัพท์ > **แอปพลิเคชัน (Apps)** > **RSSI Logger** > **สิทธิ์ (Permissions)**:
    * **ตำแหน่งที่ตั้ง (Location):** กำหนดเป็น **อนุญาตตลอดเวลา (Allow all the time)**
    * **อุปกรณ์ใกล้เคียง (Nearby devices):** กำหนดเป็น **อนุญาต (Allow)**
 
-#### ขั้นตอนการเก็บข้อมูลจริง
-1. เลื่อนแถบแจ้งเตือนด้านบนลงมา แล้วแตะเปิด **ตำแหน่ง (Location / GPS)** ของโทรศัพท์
-2. เปิดแอป **RSSI Logger**
-3. ระบุข้อมูลก่อนเริ่มเดิน:
-   * **Participant ID:** พิมพ์รหัสนักศึกษา (เช่น `680631034`)
-   * **Mode:** เลือกโหมดเดินทาง (เดิน / ปั่นจักรยาน / มอเตอร์ไซค์ / รถยนต์)
-   * **Position:** เลือกลักษณะการพกพา (กางเกง / ในมือ / กระเป๋า)
-4. แตะปุ่ม **START TRIP**
+#### การเก็บข้อมูลภาคสนามจริง
+1. เลื่อนแถบการแจ้งเตือนด้านบนของโทรศัพท์ลงมา และเปิดการทำงานของ **ตำแหน่ง (Location / GPS)**
+2. เปิดแอปพลิเคชัน **RSSI Logger**
+3. กำหนดข้อมูลการสำรวจ:
+   * **Participant ID:** ระบุรหัสนักศึกษา (เช่น `680631034`)
+   * **Mode:** เลือกโหมดการเคลื่อนที่ (walk, bike, motorcycle, car)
+   * **Position:** เลือกลักษณะการพกพาโทรศัพท์ (pocket, hand, bag)
+4. กดปุ่ม **START TRIP**
 5. เดินเก็บข้อมูลตามเส้นทางที่กำหนด
-6. เมื่อสิ้นสุดเส้นทาง แตะปุ่ม **STOP TRIP**
-7. ข้อมูลจะถูกบันทึกลงในเครื่อง และส่งขึ้นสู่ Google Drive ของโครงการโดยอัตโนมัติ
+6. เมื่อสิ้นสุดเส้นทาง กดปุ่ม **STOP TRIP**
+7. ระบบจะบันทึกข้อมูลและอัปโหลดไฟล์ CSV เข้าสู่ Google Drive ของโครงการโดยอัตโนมัติ
 
 ---
 
-<a name="สายที่-2-สำหรับ-iphone--ipad-ios-17"></a>
-### สายที่ 2: สำหรับ iPhone / iPad (iOS 17+)
+<a name="22-ขั้นตอนสำหรับอุปกรณ์-ios--iphone"></a>
+### 2.2 ขั้นตอนสำหรับอุปกรณ์ iOS / iPhone (ใช้งานผ่าน Safari และคำสั่งลัด)
 
-บน iOS เบราว์เซอร์ถูก Apple ป้องกันไม่ให้อ่านค่า Wi-Fi จึงต้องใช้คำสั่งลัดคู่กับหน้าเว็บ:
+ผู้ใช้อุปกรณ์ iPhone (iOS 17+) ดำเนินการผ่านหน้าเว็บ Safari ร่วมกับคำสั่งลัดระบบ
 
-#### ขั้นตอนการติดตั้ง (ทำครั้งแรกครั้งเดียว)
-1. ไปที่ **การตั้งค่า (Settings)** บน iPhone > **ความเป็นส่วนตัวและความปลอดภัย (Privacy & Security)** > **บริการหาตำแหน่งที่ตั้ง (Location Services)**
-2. เลื่อนหาแอป **คำสั่งลัด (Shortcuts)** > เลือกเป็น **ในระหว่างใช้แอป (While Using the App)**
-3. เปิดหน้าเว็บ `https://rssi-web-logger.vercel.app` บน Safari แตะขยายแถบเครื่องมือช่วย แล้วดาวน์โหลดไฟล์ `Send Rssi Logger Web.shortcut` จากนั้นแชร์เข้าสู่แอปคำสั่งลัด
+#### ลิงก์ดาวน์โหลดและหน้าเว็บแดชบอร์ด
+* **หน้าเว็บแดชบอร์ดหลัก:** [https://rssi-web-logger.vercel.app](https://rssi-web-logger.vercel.app)
+* **ดาวน์โหลดคำสั่งลัด:** [Send Rssi Logger Web.shortcut](https://rssi-web-logger.vercel.app/downloads/Send%20Rssi%20Logger%20web.shortcut) (ไฟล์สำรองในระบบ: [`public/downloads/Send Rssi Logger web.shortcut`](public/downloads/Send%20Rssi%20Logger%20web.shortcut))
 
-#### ขั้นตอนการเก็บข้อมูลจริง
-1. เปิดหน้าเว็บ `https://rssi-web-logger.vercel.app` บน Safari
-2. ระบุข้อมูลก่อนเริ่มเดินทาง:
-   * **รหัสผู้เข้าร่วม (Device ID):** พิมพ์รหัสนักศึกษา (เช่น `680631031`)
-   * **โหมดการเดินทาง:** แตะเลือกโหมด (เดิน / จักรยาน / มอเตอร์ไซค์ / รถ)
-   * **ตำแหน่งพกพา:** แตะเลือก (กางเกง / ในมือ / กระเป๋า)
-3. แตะปุ่ม **เริ่มบันทึก (START TRIP)** บนหน้าเว็บ
-4. สลับไปแตะปุ่ม **Play** ในแอปคำสั่งลัด (หรือกดจากวิดเจ็ตหน้าจอโฮม)
-5. สลับกลับมาดูหน้าเว็บ จะเห็นค่า Wi-Fi RSSI และพิกัด GPS อัปเดตสดทุก 1-2 วินาที
-6. เดินสำรวจตามเส้นทาง
-7. เมื่อสิ้นสุดเส้นทาง แตะปุ่ม **หยุดบันทึก (STOP TRIP)** บนหน้าเว็บ
-8. ระบบจะส่งข้อมูลทั้งหมดขึ้น Google Drive ของโครงการวิจัยโดยอัตโนมัติ
+#### การติดตั้งและกำหนดสิทธิ์ (ดำเนินการครั้งแรกเพียงครั้งเดียว)
+1. เข้าไปที่ **การตั้งค่า (Settings)** บน iPhone > **ความเป็นส่วนตัวและความปลอดภัย (Privacy & Security)** > **บริการหาตำแหน่งที่ตั้ง (Location Services)** > เลื่อนหาแอป **คำสั่งลัด (Shortcuts)** > กำหนดเป็น **ในระหว่างใช้แอป (While Using the App)**
+2. ดาวน์โหลดไฟล์คำสั่งลัดจากลิงก์ด้านบน จากนั้นเปิดแอป **ไฟล์ (Files)** > แตะค้างที่ไฟล์ > เลือก **แชร์ (Share)** > เลือก **คำสั่งลัด (Shortcuts)** เพื่อเพิ่มลงในระบบ
+
+#### การเก็บข้อมูลภาคสนามจริง
+1. เปิดหน้าเว็บ [https://rssi-web-logger.vercel.app](https://rssi-web-logger.vercel.app) ผ่านเบราว์เซอร์ Safari
+2. กำหนดข้อมูลการสำรวจ:
+   * **รหัสผู้เข้าร่วม:** ระบุรหัสนักศึกษา (เช่น `680631031`)
+   * **โหมดการเดินทาง:** แตะเลือกโหมด (เดิน, จักรยาน, มอเตอร์ไซค์, รถยนต์)
+   * **ตำแหน่งพกพา:** แตะเลือกตำแหน่ง (กางเกง, ในมือ, กระเป๋า)
+3. กดปุ่ม **เริ่มบันทึก (START TRIP)** บนหน้าเว็บ
+4. สลับไปกดปุ่ม **Play** ในแอปคำสั่งลัด (หรือสั่งทำงานผ่านวิดเจ็ตหน้าจอโฮม)
+5. สลับกลับมาที่หน้าเว็บ ตรวจสอบการอัปเดตของค่าสัญญาณ Wi-Fi และพิกัด GPS
+6. เดินสำรวจตามเส้นทางที่กำหนด
+7. เมื่อสิ้นสุดเส้นทาง กดปุ่ม **หยุดบันทึก (STOP TRIP)** บนหน้าเว็บ
+8. ระบบจะส่งข้อมูลทั้งหมดขึ้นสู่ Google Drive ของโครงการโดยอัตโนมัติ
 
 ---
 
-## 3. โครงสร้างข้อมูลมาตรฐานวิจัย 17 คอลัมน์ (Data Schema)
+## 3. ข้อกำหนดโครงสร้างข้อมูล 17 คอลัมน์ (Data Schema Specification)
 
-ไฟล์ CSV ทุกไฟล์จากทั้ง Android และ iOS ถูกจัดเก็บในรูปแบบตารางมาตรฐานเดียวกัน 17 คอลัมน์หลัก:
+ชุดข้อมูลโทรมาตรทั้งหมดจากทั้ง Android และ iOS จัดเก็บในโครงสร้างตาราง 17 คอลัมน์มาตรฐานเดียวกัน:
 
-| ลำดับ | ชื่อคอลัมน์ (Column) | ประเภทข้อมูล | ตัวอย่างข้อมูล | คำอธิบาย |
+| ลำดับ | ชื่อคอลัมน์ (Column Name) | ชนิดข้อมูล (Data Type) | ตัวอย่างข้อมูล | คำอธิบายรายละเอียด |
 | :---: | :--- | :---: | :--- | :--- |
-| 1 | `t_utc_ms` | Integer (Epoch ms) | `1793766101811` | เวลา Unix Epoch มิลลิวินาทีสำหรับซิงค์ข้อมูลข้ามอุปกรณ์ |
-| 2 | `timestamp` | ISO 8601 String | `2026-11-04T11:21:41.811Z` | วันและเวลามาตรฐานสากล UTC |
-| 3 | `session_id` | String | `TRIP-20261104-A9F2` | รหัสรอบการเก็บข้อมูล (Trip / Session ID) |
-| 4 | `participant_id` | String | `680631034` หรือ `IOS-7A2B` | รหัสนักศึกษาหรือรหัสฮาร์ดแวร์ประจำเครื่อง |
-| 5 | `platform` | String | `android`, `ios`, `web` | ระบบปฏิบัติการของอุปกรณ์ |
-| 6 | `device_model` | String | `samsung SM-S948B`, `iPhone` | รุ่นของอุปกรณ์โทรศัพท์ |
+| 1 | `t_utc_ms` | Integer (Epoch ms) | `1793766101811` | ค่าเวลา Unix Epoch ในหน่วยมิลลิวินาที สำหรับเทียบเวลาอ้างอิง |
+| 2 | `timestamp` | ISO 8601 String | `2026-11-04T11:21:41.811Z` | วันและเวลามาตรฐานสากล (UTC) |
+| 3 | `session_id` | String | `TRIP-20261104-A9F2` | รหัสรอบการเก็บข้อมูลประจำการสำรวจ |
+| 4 | `participant_id` | String | `680631034` | รหัสนักศึกษาผู้ร่วมการสำรวจ หรือรหัสอ้างอิงฮาร์ดแวร์ |
+| 5 | `platform` | String | `android`, `ios` | ระบบปฏิบัติการของอุปกรณ์ที่ใช้เก็บข้อมูล |
+| 6 | `device_model` | String | `samsung SM-S948B`, `iPhone` | ข้อมูลรุ่นฮาร์ดแวร์ของอุปกรณ์ |
 | 7 | `lat` | Float | `18.7954698` | ละติจูดพิกัดดาวเทียม GPS |
 | 8 | `lon` | Float | `98.9528959` | ลองจิจูดพิกัดดาวเทียม GPS |
-| 9 | `speed` | Float | `1.4` (km/h หรือ m/s) | ความเร็วในการเคลื่อนที่ |
-| 10 | `accuracy` | Float (เมตร) | `5.0` | รัศมีความคลาดเคลื่อนของ GPS (ยิ่งน้อยยิ่งแม่นยำ) |
-| 11 | `bssid` | String | `04:5f:b9:e4:f1:4a` | MAC Address ของ Wi-Fi Access Point |
-| 12 | `ssid` | String | `@JumboPlus5GHz` | ชื่อเครือข่าย Wi-Fi |
-| 13 | `rssi_raw` | Float (dBm) | `-45.0` | ค่าความแรงสัญญาณดิบ Wi-Fi RSSI |
-| 14 | `user_label_mode` | String | `walk`, `bike`, `motorcycle`, `car` | โหมดการเดินทางที่ผู้สำรวจเลือกด้วยตนเอง |
-| 15 | `activity_recognition_mode` | String | `still`, `walk`, `run`, `vehicle` | โหมดการเคลื่อนไหวที่ระบบตรวจจับอัตโนมัติ |
-| 16 | `phone_position` | String | `pocket`, `hand`, `bag` | ลักษณะการพกพาโทรศัพท์ขณะเก็บข้อมูล |
-| 17 | `note` | String | `อาคารวิศวะ ชั้น 3, โซนแล็บ` | บันทึกช่วยจำสถานที่หรือจุดสังเกตเพิ่มเติม |
+| 9 | `speed` | Float | `1.4` | ความเร็วในการเคลื่อนที่ |
+| 10 | `accuracy` | Float (เมตร) | `5.0` | รัศมีความคลาดเคลื่อนในแนวราบของ GPS |
+| 11 | `bssid` | String | `04:5f:b9:e4:f1:4a` | ที่อยู่ทางกายภาพ (MAC Address) ของอุปกรณ์กระจายสัญญาณ Wi-Fi |
+| 12 | `ssid` | String | `@JumboPlus5GHz` | ชื่อเครือข่ายสัญญาณ Wi-Fi ที่เชื่อมต่อ |
+| 13 | `rssi_raw` | Float (dBm) | `-45.0` | ค่าความแรงสัญญาณดิบ (Received Signal Strength Indicator) |
+| 14 | `user_label_mode` | String | `walk`, `bike`, `motorcycle`, `car` | โหมดการเคลื่อนที่ที่ผู้สำรวจเลือกกำหนด (Ground Truth Label) |
+| 15 | `activity_recognition_mode` | String | `still`, `walk`, `run`, `vehicle` | โหมดการเคลื่อนไหวที่ระบบคำนวณและจำแนกอัตโนมัติ |
+| 16 | `phone_position` | String | `pocket`, `hand`, `bag` | ลักษณะการพกพาอุปกรณ์โทรศัพท์ขณะสำรวจ |
+| 17 | `note` | String | `อาคารวิศวะ ชั้น 3, โซนแล็บ` | บันทึกรายละเอียดบริบทสถานที่หรือจุดสังเกตเพิ่มเติม |
 
 ---
 
-## 4. การจัดเก็บข้อมูลบน Google Drive และ Google Sheets
+## 4. โครงสร้างการจัดเก็บข้อมูลบน Google Drive
 
-ข้อมูลโทรมาตรทั้งหมดจะถูกรวบรวมเข้าสู่ Google Drive ของโครงการวิจัย:
-* **Google Drive Path:** `ไดรฟ์ของฉัน > RSSI_Database > dataset`
-* `dataset/android/` — ไฟล์ CSV จากแอปพลิเคชัน Android
-* `dataset/ios/` — ไฟล์ CSV จากหน้าเว็บ Safari บน iPhone
-* **Google Sheet กลาง:** บันทึกข้อมูลเรียงตามแถวพร้อมระบุรหัสนักศึกษาและรหัสรอบการเดินทาง
-
----
-
-## 5. การจัดการความซ้ำซ้อนของ Repository
-
-เดิมทีโครงการมี 2 Repository แยกกันบน GitHub คือ `rssi_logger_app` (แอป Flutter เก่า) และ `rssi-web-logger` (หน้าเว็บ Vercel) ทำให้เกิดความซ้ำซ้อน
-
-### แนวทางการรวมเป็น Repository เดียว (Monorepo)
-ปัจจุบันโครงการนี้ได้รวมทั้ง Website และ Mobile App เข้าด้วยกันในโฟลเดอร์เดียวเรียบร้อยแล้ว:
-
-#### คำแนะนำในการจัดการ GitHub
-1. **เปลี่ยนชื่อ Repository หลัก:**
-   * ไปที่ GitHub Repository `https://github.com/Kitsada4435/rssi-web-logger`
-   * เข้าแท็บ **Settings** > ส่วน **Repository name**
-   * เปลี่ยนชื่อเป็น `wifi-telemetry-pipeline` หรือชื่อที่ต้องการ
-2. **เก็บถาวร (Archive) Repo เก่า:**
-   * ไปที่ GitHub Repository `https://github.com/Kitsada4435/rssi_logger_app`
-   * เข้าแท็บ **Settings** > เลื่อนลงล่างสุดในส่วน **Danger Zone**
-   * เลือก **Archive this repository** เพื่อป้องกันความสับสน
+ข้อมูลที่ส่งขึ้นจากอุปกรณ์จะถูกจำแนกเข้าสู่โฟลเดอร์โครงการตามแพลตฟอร์ม:
+* **พาธหลักบน Google Drive:** `ไดรฟ์ของฉัน > RSSI_Database > dataset`
+* `dataset/android/` — สำหรับจัดเก็บไฟล์ CSV ที่ส่งมาจากแอปพลิเคชัน Android
+* `dataset/ios/` — สำหรับจัดเก็บไฟล์ CSV ที่ส่งมาจากระบบเว็บ Safari บน iPhone
+* **Google Sheet บันทึกส่วนกลาง:** จัดเก็บข้อมูลแบบแถวเรียงตามเวลา พร้อมระบุรหัสผู้สำรวจเพื่อใช้ในการวิเคราะห์ขั้นต้น
 
 ---
 
@@ -173,10 +159,10 @@ flowchart TD
 
 ---
 
-<a name="developer-and-technical-guide-english"></a>
-# Developer and Technical Guide (English)
+<a name="technical-and-developer-guide-english"></a>
+# Technical and Developer Guide (English)
 
-Technical documentation for researchers and software engineers extending or maintaining the **Wi-Fi and GPS Telemetry Pipeline**.
+Technical specification and developer documentation for engineers extending or deploying the **Wi-Fi and GPS Telemetry Pipeline**.
 
 ---
 
@@ -184,28 +170,28 @@ Technical documentation for researchers and software engineers extending or main
 
 ```mermaid
 flowchart TD
-    subgraph MobileClients ["Field Survey Hardware"]
-        AndroidApp["Android App (Flutter / Dart)<br>- WifiManager Scan Engine<br>- Direct Google Drive Sync<br>- Local SQLite Storage"]
-        iOSWeb["iOS Safari Dashboard<br>- Screen WakeLock API<br>- Geolocation Watcher<br>- Multi-User Delta Polling"]
-        iOSShortcut["Apple Shortcut Bridge<br>- Reads Connected Wi-Fi AP<br>- Background HTTP GET Stream"]
+    subgraph ClientLayer ["Data Collection Clients"]
+        AndroidClient["Android Native App (Flutter)<br>- WifiManager Scan API<br>- Background Service Engine<br>- Direct Google Drive Sync"]
+        iOSClient["iOS Web Application (Safari)<br>- Screen Wake Lock API<br>- Geolocation Watcher<br>- Device-Bound Polling Engine"]
+        ShortcutBridge["Apple Shortcuts Bridge<br>- Ingests Connected BSSID/RSSI<br>- Background HTTP GET Stream"]
     end
 
-    subgraph CloudPipeline ["Vercel Serverless Ingestion"]
-        LogAPI["/api/log<br>- Participant Isolated Ingestion<br>- Ephemeral Store<br>- Delta Polling Filter"]
-        SyncAPI["/api/sync-drive<br>- Dual Base64 CSV Assembler"]
-        ExportAPI["/api/export<br>- Filtered 17-Column CSV Exporter"]
+    subgraph ServerlessLayer ["Vercel Ingestion API"]
+        LogAPI["/api/log<br>- Multi-User Isolated Ingestion<br>- Ephemeral Store Cache<br>- Delta Polling Filter"]
+        SyncAPI["/api/sync-drive<br>- Base64 CSV Assembler Proxy"]
+        ExportAPI["/api/export<br>- 17-Column Filtered CSV Export"]
     end
 
-    subgraph StoragePipeline ["Google Workspace Cloud"]
-        GAS["Google Apps Script Webhook<br>(doPost Endpoint)"]
+    subgraph StorageLayer ["Google Workspace Cloud Infrastructure"]
+        GAS["Google Apps Script Webhook<br>(doPost Trigger)"]
         GDrive["Google Drive Storage<br>dataset / {platform} / {session}.csv"]
-        GSheet["Google Sheets<br>Master Database"]
+        GSheet["Google Sheets<br>Master Survey Database"]
     end
 
-    AndroidApp -- "Batch POST JSON" --> GAS
-    iOSShortcut -- "HTTP GET /api/log?bssid=...&participant_id=..." --> LogAPI
-    iOSWeb -- "Poll: GET /api/log?participant_id=...&after_id=..." --> LogAPI
-    iOSWeb -- "Batch POST /api/sync-drive" --> SyncAPI
+    AndroidClient -- "Batch POST JSON" --> GAS
+    ShortcutBridge -- "HTTP GET /api/log?bssid=...&participant_id=..." --> LogAPI
+    iOSClient -- "Poll: GET /api/log?participant_id=...&after_id=..." --> LogAPI
+    iOSClient -- "Batch POST /api/sync-drive" --> SyncAPI
     SyncAPI -- "Forward payload" --> GAS
     GAS --> GDrive
     GAS --> GSheet
@@ -217,26 +203,26 @@ flowchart TD
 
 ```text
 wifi-telemetry-pipeline/
-├── README.md                            # Comprehensive Bilingual Documentation
+├── README.md                            # Comprehensive Bilingual Technical Documentation
 ├── package.json                         # Node.js dependencies and project metadata
 ├── server.js                            # Local development Express server
 ├── vercel.json                          # Vercel Serverless rewrite configurations
-├── api/                                 # Vercel Serverless Functions (Website API)
-│   ├── log.js                           # Telemetry ingestion and multi-user delta polling
+├── api/                                 # Vercel Serverless Functions (Web Backend)
+│   ├── log.js                           # Telemetry ingestion and isolated delta polling
 │   ├── sync-drive.js                    # Batch Google Drive / Sheets sync proxy
 │   ├── logs.js                          # Backward-compatibility alias
 │   └── export.js                        # Isolated 17-column CSV export stream
-├── public/                              # Web Dashboard Frontend Assets (iOS / Desktop)
+├── public/                              # Web Dashboard Frontend (iOS / Desktop)
 │   ├── index.html                       # Minimalist high-contrast user interface
 │   ├── style.css                        # Mobile-optimized dark mode CSS
 │   ├── app.js                           # State controller, GPS watcher, delta polling
-│   └── downloads/                       # Direct client distribution bundles
-│       ├── Send Rssi Logger Web.shortcut # Pre-configured iOS Shortcut template
-│       ├── rssi-logger-android.apk      # Standalone Android Logger APK
-│       └── macrodroid_guide.txt         # Alternative Android MacroDroid instructions
-├── mobile_app/                          # Standalone Android Application (Flutter)
-│   ├── android/                         # Native Android Gradle project configuration
-│   ├── ios/                             # Native iOS runner configuration
+│   └── downloads/                       # Client installation and distribution bundles
+│       ├── Send Rssi Logger web.shortcut # Apple Shortcut template
+│       ├── rssi-logger-android.apk      # Standalone Android Application APK
+│       └── macrodroid_guide.txt         # Alternative Android automation guide
+├── mobile_app/                          # Android Application Source Code (Flutter)
+│   ├── android/                         # Native Android Gradle configuration
+│   ├── ios/                             # Native iOS configuration
 │   ├── lib/                             # Dart application source code
 │   │   ├── main.dart                    # Application UI entry point
 │   │   ├── sensor_manager.dart          # Wi-Fi BSSID/RSSI, GPS, and motion manager
@@ -249,7 +235,7 @@ wifi-telemetry-pipeline/
 │   ├── Phase_2_Data_Collection_And_ML_Pipeline.md
 │   ├── RESEARCH_TITLES_AND_CONCEPTS.md
 │   └── 4Inferring_Trips_and_Origin-Destination_Flows_...pdf
-├── dataset/                             # Field Survey CSV Verification Datasets
+├── dataset/                             # Sample Test Datasets (CSV)
 └── scripts/
     ├── google_drive_script.js           # Production Google Apps Script webhook code
     └── test_ping.py                     # CLI telemetry ingestion simulation script
@@ -257,18 +243,18 @@ wifi-telemetry-pipeline/
 
 ---
 
-## API Reference
+## API Specification
 
 ### 1. Ingest and Poll Telemetry: `/api/log`
-Ingests telemetry packets from mobile clients and delivers isolated streams to matching web clients.
+Handles incoming telemetry data from mobile clients and delivers isolated streams to matching web clients.
 
 * **Method:** `GET` | `POST`
 * **Query Parameters (Ingestion):**
-  * `bssid` (string): MAC Address / BSSID of the Access Point.
-  * `ssid` (string): Wi-Fi network SSID.
+  * `bssid` (string): Physical MAC Address of the Access Point.
+  * `ssid` (string): Connected Wi-Fi network SSID.
   * `rssi` / `rssi_raw` (number): Received signal strength indicator in dBm.
-  * `participant_id` (string, required): Hardware identifier or Student ID.
-  * `session_id` / `trip_id` (string, optional): Current trip identifier.
+  * `participant_id` (string, required): Student ID or persistent hardware identifier.
+  * `session_id` / `trip_id` (string, optional): Current survey session identifier.
   * `lat` / `latitude` (float, optional): Latitude coordinate.
   * `lon` / `longitude` (float, optional): Longitude coordinate.
   * `speed` (float, optional): Moving speed.
@@ -278,11 +264,11 @@ Ingests telemetry packets from mobile clients and delivers isolated streams to m
   * `phone_position` (string, optional): Carrying position (`pocket`, `hand`, `bag`).
   * `note` (string, optional): Contextual location description.
 * **Query Parameters (Multi-User Dashboard Polling):**
-  * `action=get`: Required for polling telemetry.
-  * `participant_id` (string, required): Only returns records matching this participant ID.
-  * `after_id` (integer, optional): Only returns records with `id > after_id` for efficient delta polling.
+  * `action=get`: Required query to poll telemetry.
+  * `participant_id` (string, required): Returns records matching this participant ID only.
+  * `after_id` (integer, optional): Returns records with `id > after_id` for efficient delta polling.
 * **Query Parameters (Data Reset):**
-  * `action=clear&participant_id=...` or `DELETE`: Flushes in-memory storage for that specific participant only.
+  * `action=clear&participant_id=...` or `DELETE`: Clears in-memory storage for that specific participant only.
 
 #### Sample Ingestion Request:
 ```http
@@ -298,7 +284,7 @@ Host: rssi-web-logger.vercel.app
 
 ---
 
-### 2. Batch Cloud Sync: `/api/sync-drive`
+### 2. Batch Cloud Synchronization: `/api/sync-drive`
 Proxies survey batch datasets to Google Apps Script.
 
 * **Method:** `POST`
@@ -322,7 +308,7 @@ Proxies survey batch datasets to Google Apps Script.
 # Install dependencies
 npm install
 
-# Start local server
+# Start development server
 npm start
 
 # Access local dashboard
@@ -334,11 +320,11 @@ http://localhost:3000
 cd mobile_app
 flutter pub get
 flutter build apk --release
-# Output: mobile_app/build/app/outputs/flutter-apk/app-release.apk
+# Output binary: mobile_app/build/app/outputs/flutter-apk/app-release.apk
 ```
 
-### 3. Vercel Deployment
-Every push to the `main` branch automatically deploys to Vercel production. Serverless rewrites in `vercel.json` manage API routing.
+### 3. Vercel Production Deployment
+Each commit pushed to the `main` branch triggers an automated build and deployment on Vercel. Serverless rewrite rules in `vercel.json` handle API routing.
 
 ---
 
