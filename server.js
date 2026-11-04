@@ -122,7 +122,7 @@ app.all('/api/log', (req, res) => {
 });
 
 // 2. Google Drive Batch Sync Endpoint
-const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbzA44XbzKTShHeT_tA2quQwacEe2OtxH4-cUWAWcd77DvzA3sToagZPNUTegqPOd9aJ/exec';
+const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbzvkcibz8OjhTj8pgQE2BhkNy3S6cSEt9OlDFdfJ261-CFzpHX6pSU66IeEtqkh9Q7e/exec';
 
 function generateCsvString(items, participantId, tripId) {
   const headers = [

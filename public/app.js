@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
     tripId: 'IDLE',
     participantId: initParticipantId(),
     tripNote: localStorage.getItem('rssi_trip_note') || '',
-    gdriveWebhook: localStorage.getItem('rssi_gdrive_webhook') || 'https://script.google.com/macros/s/AKfycbzA44XbzKTShHeT_tA2quQwacEe2OtxH4-cUWAWcd77DvzA3sToagZPNUTegqPOd9aJ/exec',
+    gdriveWebhook: localStorage.getItem('rssi_gdrive_webhook') || 'https://script.google.com/macros/s/AKfycbzvkcibz8OjhTj8pgQE2BhkNy3S6cSEt9OlDFdfJ261-CFzpHX6pSU66IeEtqkh9Q7e/exec',
     autoSyncGdrive: localStorage.getItem('rssi_autosync_gdrive') !== 'false',
     selectedMode: 'walk',
     phonePosition: 'pocket',

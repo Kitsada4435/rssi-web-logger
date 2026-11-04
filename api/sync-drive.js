@@ -1,4 +1,4 @@
-const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbzA44XbzKTShHeT_tA2quQwacEe2OtxH4-cUWAWcd77DvzA3sToagZPNUTegqPOd9aJ/exec';
+const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbzvkcibz8OjhTj8pgQE2BhkNy3S6cSEt9OlDFdfJ261-CFzpHX6pSU66IeEtqkh9Q7e/exec';
 
 function generateCsvString(logs, participantId, tripId) {
   const headers = [
