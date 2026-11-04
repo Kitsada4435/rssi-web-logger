@@ -8,7 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class CloudManager {
   // ใส่ URL ที่ได้จาก Google Apps Script (Web App URL)
-  static const String defaultGasUrl = "https://script.google.com/macros/s/AKfycbwry_goxlTURpP6xBBi6jvTBfGNrhppeS4xQtPEoBVae52dNa0DnfblQgJDzj-TE_Dr/exec";
+  static const String defaultGasUrl = "https://script.google.com/macros/s/AKfycbzA44XbzKTShHeT_tA2quQwacEe2OtxH4-cUWAWcd77DvzA3sToagZPNUTegqPOd9aJ/exec";
 
   static Future<String> getGasUrl() async {
     final prefs = await SharedPreferences.getInstance();

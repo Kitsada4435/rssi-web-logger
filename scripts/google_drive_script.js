@@ -53,7 +53,9 @@ function doPost(e) {
 
       // หากมี data.logs แนบมาด้วย ให้บันทึกลง Google Sheets ต่อเนื่องทันที
       if (data.action === "batch_upload" && Array.isArray(data.logs)) {
-        rowsAdded = appendBatchLogsToSheet(parentFolder, data.logs);
+        try {
+          rowsAdded = appendBatchLogsToSheet(parentFolder, data.logs);
+        } catch (sheetErr) {}
       }
 
       return ContentService.createTextOutput(JSON.stringify({
@@ -67,9 +69,15 @@ function doPost(e) {
     // 3. กรณีที่ 2: Batch Upload จากหน้า Web Dashboard (ส่ง Array ของ Logs 18 คอลัมน์)
     if (data.action === "batch_upload" && Array.isArray(data.logs)) {
       const logs = data.logs;
-      rowsAdded = appendBatchLogsToSheet(parentFolder, logs);
 
-      // บันทึกไฟล์ CSV สำรองเข้าโฟลเดอร์ Google Drive
+      // พยายามบันทึกลง Google Sheets (ถ้าได้รับสิทธิ์ Sheet)
+      try {
+        rowsAdded = appendBatchLogsToSheet(parentFolder, logs);
+      } catch (sheetErr) {
+        // หากยังไม่ได้ให้สิทธิ์ Google Sheets จะข้ามไปเซฟไฟล์ CSV โดยตรง
+      }
+
+      // บันทึกไฟล์ CSV เข้าโครงสร้างโฟลเดอร์ Google Drive (dataset -> OS -> Model -> User)
       if (data.save_csv !== false && logs.length > 0) {
         const tripId = data.trip_id || `TRIP_${Date.now()}`;
         const participantId = data.participant_id || "ANON";
@@ -96,32 +104,35 @@ function doPost(e) {
     }
 
     // 4. กรณีที่ 3: รับข้อมูลจุดเดี่ยว Real-time จาก Webhook / Shortcuts
-    const sheet = getOrCreateSpreadsheet(parentFolder, SHEET_NAME);
-    const tUtc = data.t_utc_ms || (data.timestamp ? Date.parse(data.timestamp) : Date.now());
-    let spd = data.speed !== null && data.speed !== undefined && data.speed !== "" ? data.speed : 0;
-    if (typeof spd === "number") spd = spd.toFixed(2);
+    try {
+      const sheet = getOrCreateSpreadsheet(parentFolder, SHEET_NAME);
+      const tUtc = data.t_utc_ms || (data.timestamp ? Date.parse(data.timestamp) : Date.now());
+      let spd = data.speed !== null && data.speed !== undefined && data.speed !== "" ? data.speed : 0;
+      if (typeof spd === "number") spd = spd.toFixed(2);
 
-    const row = [
-      tUtc,
-      data.timestamp || new Date(tUtc).toISOString(),
-      data.session_id || data.trip_id || "TRIP",
-      data.participant_id || "ANON",
-      data.platform || "ios",
-      data.device_model || (data.platform === "android" ? "Android Device" : "Apple iPhone"),
-      data.os_version || (data.platform === "android" ? "Android" : "iOS 18.1"),
-      data.lat !== null && data.lat !== undefined ? data.lat : (data.latitude !== null && data.latitude !== undefined ? data.latitude : ""),
-      data.lon !== null && data.lon !== undefined ? data.lon : (data.longitude !== null && data.longitude !== undefined ? data.longitude : ""),
-      spd,
-      data.accuracy || 5,
-      data.bssid || "",
-      data.ssid || "",
-      data.rssi_raw !== null && data.rssi_raw !== undefined ? data.rssi_raw : (data.rssi !== null && data.rssi !== undefined ? data.rssi : -99),
-      data.rssi_source || (data.platform === "android" ? "wifimanager" : "shortcut"),
-      data.user_label_mode || data.mode || "walk",
-      data.phone_position || "pocket",
-      data.note || ""
-    ];
-    sheet.appendRow(row);
+      const row = [
+        tUtc,
+        data.timestamp || new Date(tUtc).toISOString(),
+        data.session_id || data.trip_id || "TRIP",
+        data.participant_id || "ANON",
+        data.platform || "ios",
+        data.device_model || (data.platform === "android" ? "Android Device" : "Apple iPhone"),
+        data.os_version || (data.platform === "android" ? "Android" : "iOS 18.1"),
+        data.lat !== null && data.lat !== undefined ? data.lat : (data.latitude !== null && data.latitude !== undefined ? data.latitude : ""),
+        data.lon !== null && data.lon !== undefined ? data.lon : (data.longitude !== null && data.longitude !== undefined ? data.longitude : ""),
+        spd,
+        data.accuracy || 5,
+        data.bssid || "",
+        data.ssid || "",
+        data.rssi_raw !== null && data.rssi_raw !== undefined ? data.rssi_raw : (data.rssi !== null && data.rssi !== undefined ? data.rssi : -99),
+        data.rssi_source || (data.platform === "android" ? "wifimanager" : "shortcut"),
+        data.user_label_mode || data.mode || "walk",
+        data.phone_position || "pocket",
+        data.note || ""
+      ];
+      sheet.appendRow(row);
+      rowsAdded = 1;
+    } catch (sheetErr) {}
 
     return ContentService.createTextOutput(JSON.stringify({
       status: "success",
