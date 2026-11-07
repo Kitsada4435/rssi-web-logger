@@ -4,11 +4,24 @@ node_modules/
 npm-debug.log*
 .vercel
 dist/
+
+# Security & Secrets: Never commit environment variables or Web App URLs
 .env
 .env.local
 .env.*.local
+!.env.example
+
+# Research Data & Manifests: Never commit raw telemetry or participant manifests
 *.csv
-!dataset/*.csv
+*.zip
+dataset/
+!dataset/.gitkeep
+manifest.json
+**/manifest.json
+
+# Research Literature & Copyrighted Documents: Never commit reference PDFs
+*.pdf
+docs/*.pdf
 
 # Mobile App & Flutter Build Artefacts
 mobile_app/build/

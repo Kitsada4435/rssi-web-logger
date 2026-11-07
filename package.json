@@ -5,7 +5,9 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "sync:dataset": "python tools/dataset_sync/sync_dataset.py",
+    "verify:dataset": "python tools/dataset_sync/sync_dataset.py --verify"
   },
   "keywords": [
     "rssi",
