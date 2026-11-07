@@ -66,6 +66,33 @@ function doGet(e) {
     }
   }
 
+  // 3. ย้ายไฟล์ลงถังขยะ (Delete / Trash File)
+  if (action === "delete_file" || action === "trash_file") {
+    const fileId = e.parameter.file_id;
+    if (!fileId) {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "error",
+        message: "file_id is required"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    try {
+      const file = DriveApp.getFileById(fileId);
+      const fileName = file.getName();
+      file.setTrashed(true);
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        deleted_id: fileId,
+        filename: fileName,
+        message: "File moved to trash"
+      })).setMimeType(ContentService.MimeType.JSON);
+    } catch (err) {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "error",
+        message: err.toString()
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+
   // สถานะเริ่มต้น
   return ContentService.createTextOutput(JSON.stringify({
     status: "ok",

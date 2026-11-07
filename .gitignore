@@ -4,6 +4,8 @@ node_modules/
 npm-debug.log*
 .vercel
 dist/
+__pycache__/
+*.pyc
 
 # Security & Secrets: Never commit environment variables or Web App URLs
 .env

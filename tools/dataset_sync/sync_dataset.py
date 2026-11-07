@@ -343,16 +343,41 @@ def sync_from_drive(endpoint_url, dataset_dir, force_download=False):
     print("=" * 70)
 
 
+def delete_remote_file(gas_url, file_id):
+    """ส่งคำสั่งย้ายไฟล์ลงถังขยะบน Google Drive ผ่าน Web App"""
+    if not gas_url:
+        print("❌ ไม่พบ Web App URL กรุณาระบุใน .env หรือผ่านพารามิเตอร์ --url")
+        return False
+    query = urllib.parse.urlencode({"action": "delete_file", "file_id": file_id})
+    target_url = f"{gas_url}{'&' if '?' in gas_url else '?'}{query}"
+    req = urllib.request.Request(target_url, headers={"User-Agent": "RSSI-Downloader/1.0"})
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            if data.get("status") == "success":
+                print(f"  🗑️ ย้ายลงถังขยะสำเร็จ: {data.get('filename', file_id)}")
+                return True
+            else:
+                print(f"  ⚠️ ไม่สำเร็จ: {data.get('message')}")
+                return False
+    except Exception as e:
+        print(f"  ❌ ล้มเหลว: {e}")
+        return False
+
+
 def main():
     parser = argparse.ArgumentParser(description="RSSI Dataset Downloader & Deduplication Verifier")
     parser.add_argument("--url", default=DEFAULT_GAS_URL, help="Google Apps Script Web App URL")
     parser.add_argument("--dir", default=DEFAULT_OUTPUT_DIR, help="Directory to save dataset")
     parser.add_argument("--verify", action="store_true", help="Verify local files and duplicates only (No download)")
     parser.add_argument("--force", action="store_true", help="Force re-download all files")
+    parser.add_argument("--delete-file", help="Remote file ID to move to trash on Google Drive")
 
     args = parser.parse_args()
 
-    if args.verify:
+    if args.delete_file:
+        delete_remote_file(args.url, args.delete_file)
+    elif args.verify:
         verify_local_dataset(args.dir)
     else:
         sync_from_drive(args.url, args.dir, force_download=args.force)
