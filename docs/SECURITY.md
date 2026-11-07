@@ -31,3 +31,4 @@
 ### 3. การตรวจสอบก่อน Commit
 * รันคำสั่ง `git status` ทุกครั้งก่อน `git add`
 * หากพบไฟล์ในกลุ่ม `dataset/`, `manifest.json`, `.env` หรือ `*.pdf` ปรากฏใน Untracked files ให้หยุดและตรวจสอบ `.gitignore` ทันที
+

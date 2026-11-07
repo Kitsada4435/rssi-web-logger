@@ -110,6 +110,8 @@ document.addEventListener('DOMContentLoaded', () => {
     currentLocation: null,
     watchId: null,
     wakeLock: null,
+    lastTelemetryTime: null,
+    watchdogInterval: null,
     logs: []
   };
 
@@ -149,6 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
     syncToast: document.getElementById('sync-toast'),
     syncToastIcon: document.getElementById('sync-toast-icon'),
     syncToastText: document.getElementById('sync-toast-text'),
+    watchdogAlert: document.getElementById('watchdog-alert'),
     modeBtns: document.querySelectorAll('.mode-chip'),
     posBtns: document.querySelectorAll('.pos-chip')
   };
@@ -398,6 +401,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Pulse connection status
     el.connText.textContent = `รับ #${state.logs.length}`;
     el.connPill.classList.add('recording');
+
+    // Telemetry Watchdog Ping
+    state.lastTelemetryTime = Date.now();
+    hideWatchdogAlert();
   }
 
   // 6. Calm Real-Time Telemetry Polling (Strict Multi-User Isolation)
@@ -459,6 +466,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // 8. Timer Controller
   function startTimer() {
     state.startTime = Date.now();
+    state.lastTelemetryTime = Date.now();
+    hideWatchdogAlert();
+
     state.timerInterval = setInterval(() => {
       const delta = Math.floor((Date.now() - state.startTime) / 1000);
       const h = String(Math.floor(delta / 3600)).padStart(2, '0');
@@ -466,11 +476,55 @@ document.addEventListener('DOMContentLoaded', () => {
       const s = String(delta % 60).padStart(2, '0');
       el.tripTimer.textContent = `${h}:${m}:${s}`;
     }, 1000);
+
+    if (!state.watchdogInterval) {
+      state.watchdogInterval = setInterval(checkWatchdog, 4000);
+    }
   }
 
   function stopTimer() {
     clearInterval(state.timerInterval);
     state.timerInterval = null;
+    if (state.watchdogInterval) {
+      clearInterval(state.watchdogInterval);
+      state.watchdogInterval = null;
+    }
+    hideWatchdogAlert();
+  }
+
+  // 8.1 iOS Shortcuts Web Watchdog (1-Minute Sweet Spot)
+  const WATCHDOG_TIMEOUT_MS = 60000; // 60s timeout
+
+  function checkWatchdog() {
+    if (!state.isRecording) {
+      hideWatchdogAlert();
+      return;
+    }
+    const now = Date.now();
+    const lastTime = state.lastTelemetryTime || state.startTime || now;
+    const elapsed = now - lastTime;
+    if (elapsed >= WATCHDOG_TIMEOUT_MS) {
+      showWatchdogAlert();
+    } else {
+      hideWatchdogAlert();
+    }
+  }
+
+  function showWatchdogAlert() {
+    if (!el.watchdogAlert) return;
+    if (el.watchdogAlert.style.display !== 'flex') {
+      el.watchdogAlert.style.display = 'flex';
+      if ('vibrate' in navigator) {
+        try { navigator.vibrate([200, 100, 200]); } catch (e) {}
+      }
+    }
+  }
+
+  function hideWatchdogAlert() {
+    if (!el.watchdogAlert) return;
+    if (el.watchdogAlert.style.display !== 'none') {
+      el.watchdogAlert.style.display = 'none';
+    }
   }
 
   // Helper: Live Google Drive Sync Toast
@@ -786,6 +840,14 @@ document.addEventListener('DOMContentLoaded', () => {
       await syncToGoogleDrive(true);
     }
   });
+
+  // Watchdog Alert Tap Action (Immediate Reset & Resume)
+  if (el.watchdogAlert) {
+    el.watchdogAlert.addEventListener('click', () => {
+      state.lastTelemetryTime = Date.now();
+      hideWatchdogAlert();
+    });
+  }
 
   // 14. Export CSV (Instant Local Download - Clean 18 Core Research Columns)
   el.btnExport.addEventListener('click', () => {

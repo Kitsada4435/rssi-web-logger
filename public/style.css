@@ -349,6 +349,63 @@ body {
 }
 
 /* ============================================================
+   WATCHDOG ALERT BANNER (1-Click Recovery for iOS Shortcuts)
+============================================================ */
+.watchdog-alert-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.18), rgba(239, 68, 68, 0.18));
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.2);
+  color: #fef08a;
+  text-decoration: none;
+  cursor: pointer;
+  animation: pulse-watchdog 2s infinite ease-in-out;
+  transition: transform 0.15s ease, opacity 0.2s ease;
+}
+
+.watchdog-alert-banner:active {
+  transform: scale(0.98);
+}
+
+.watchdog-icon {
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.watchdog-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.watchdog-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #fbbf24;
+}
+
+.watchdog-sub {
+  font-size: 0.72rem;
+  color: #fef9c3;
+  opacity: 0.9;
+}
+
+@keyframes pulse-watchdog {
+  0%, 100% {
+    border-color: rgba(245, 158, 11, 0.45);
+    box-shadow: 0 2px 10px rgba(245, 158, 11, 0.15);
+  }
+  50% {
+    border-color: rgba(239, 68, 68, 0.8);
+    box-shadow: 0 4px 18px rgba(239, 68, 68, 0.35);
+  }
+}
+
+/* ============================================================
    SETUP CARD (Device ID & Mode & Notes)
 ============================================================ */
 .card-setup {
