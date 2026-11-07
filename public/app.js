@@ -217,8 +217,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Geolocation Tracker (Pure Satellite Hardware - 0 MB Cellular Data Used)
-  let lastGeoPos = null;
-  let lastGeoTime = null;
+  let geoHistory = []; // Sliding window buffer for stable kinematic speed calculation
 
   function startGeoTracking() {
     if ('geolocation' in navigator) {
@@ -229,26 +228,28 @@ document.addEventListener('DOMContentLoaded', () => {
           const now = Date.now();
           let speedNum = 0.0;
 
-          // 1. Native speed if provided by hardware (> 0)
+          // Maintain rolling history of recent GPS coordinates (last 5-8 fixes)
+          geoHistory.push({ lat, lng, time: now });
+          if (geoHistory.length > 10) geoHistory.shift();
+
+          // 1. Native hardware speed if provided by OS (works on vehicles or Android)
           if (pos.coords.speed !== null && !isNaN(pos.coords.speed) && pos.coords.speed > 0) {
             speedNum = pos.coords.speed * 3.6;
-          } else if (lastGeoPos && lastGeoTime) {
-            // 2. Pure Kinematic Speed from physical movement (Haversine distance / dt)
-            const dt = (now - lastGeoTime) / 1000;
-            if (dt >= 0.5) {
-              const dist = calcHaversineDistance(lastGeoPos.lat, lastGeoPos.lng, lat, lng);
-              if (dist >= 0.4) {
+          } else if (geoHistory.length >= 2) {
+            // 2. Pure Kinematic Speed from physical movement using 1.2 - 3.0s window
+            // Matches realistic human walking step frequency without resetting too early
+            const targetPoint = geoHistory.find(p => (now - p.time) >= 1200) || geoHistory[0];
+            const dt = (now - targetPoint.time) / 1000;
+            if (dt >= 1.0) {
+              const dist = calcHaversineDistance(targetPoint.lat, targetPoint.lng, lat, lng);
+              // Filter stationary GPS jitter (< 0.7m over 1.2s is noise)
+              if (dist >= 0.7) {
                 speedNum = (dist / dt) * 3.6;
               }
             }
           }
 
-          if (lastGeoPos === null || (now - lastGeoTime) >= 500) {
-            lastGeoPos = { lat, lng };
-            lastGeoTime = now;
-          }
-
-          if (speedNum > 200) speedNum = 0.0; // Filter invalid GPS jumps
+          if (speedNum > 150) speedNum = 0.0; // Filter invalid GPS jumps
           const speed = speedNum.toFixed(2);
           const acc = pos.coords.accuracy ? Math.round(pos.coords.accuracy) : 5;
 
