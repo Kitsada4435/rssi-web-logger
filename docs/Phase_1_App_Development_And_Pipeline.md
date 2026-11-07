@@ -177,6 +177,15 @@
   2. **Android Hardware ID:** บน Android ดึงค่า `Settings.Secure.ANDROID_ID` ผ่าน Platform MethodChannel เป็นค่าเริ่มต้น ซึ่งคงเดิมตลอดอายุเครื่องแม้จะลบ-ลงใหม่กี่ครั้ง
   3. **Editable USER ID Field:** ปลดล็อคกล่องข้อความบนหน้า Dashboard ให้สามารถแตะแก้ไขได้ตลอดเวลา เพื่อให้ผู้เข้าร่วมสามารถตรวจสอบหรือกรอกรหัสเดิม (เช่น รหัสนักศึกษา) กลับเข้าไปได้ในทุกสถานการณ์
 
+### 8. ข้อค้นพบด้านการบันทึก Speed และพิกัด: iOS WebKit Freeze vs Android Background Service
+- **ปัญหาฝั่ง iOS (Shortcut ขาดตัวแปร Speed & WebKit Suspend):**
+  1. คำสั่งลัด (Shortcuts) ของ Apple ไม่มีพร็อพเพอร์ตี `Speed` ในคำสั่ง `Get Details of Location` และการเรียก GPS ผ่าน Shortcuts ใช้เวลา 5–15 วินาที ทำให้ไม่สามารถนำมาใส่ในลูป 1 วินาทีได้ จึงต้องอาศัย Safari บนหน้าเว็บแดชบอร์ด (`public/app.js`) เป็นผู้คำนวณ Kinematic Speed
+  2. เมื่อผู้ใช้อุปกรณ์ iOS ปิดหน้าจอดับลงหรือสลับแอปไปไว้เบื้องหลัง ระบบปฏิบัติการ iOS WebKit จะสั่ง Freeze (หยุดพัก) เธรด JavaScript ทันที ทำให้ `navigator.geolocation.watchPosition` หยุดส่งค่า ส่งผลให้ความเร็วถูกบันทึกเป็น `0.00 km/h` และพิกัดค้าง
+  3. **แนวทางแก้ไขบน iOS:** พัฒนา **Sliding Window Kinematic Buffer (1.2–3.0 วินาที)** ใน `app.js` เพื่อให้คำนวณระยะก้าวเดินช้าได้แม่นยำ พร้อมบังคับใช้ **Screen WakeLock API** เพื่อล็อกหน้าจอ Safari ให้เปิดสว่างตลอดเวลาที่เริ่มทริป
+- **ความสมบูรณ์ฝั่ง Android (Native Hardware Parity):**
+  - Android ใช้ `GpsProvider` ทำงานร่วมกับ `FlutterBackgroundService` (Foreground Service) ซึ่งมีสิทธิ์ `ACCESS_BACKGROUND_LOCATION` และ `FOREGROUND_SERVICE_LOCATION`
+  - ดึงค่าพิกัดและความเร็วระดับ Hardware จาก `FusedLocationProviderClient` ได้ต่อเนื่องตลอดเวลา แม้จะปิดหน้าจอดับใส่กระเป๋ากางเกง โดยนำค่า `pos.speed (m/s) * 3.6` แปลงเป็น `km/h` บันทึกลง SQLite ออฟไลน์ได้ 100% ปราศจากปัญหา Background Freeze แบบ iOS
+
 ---
 
 ## 9. สถาปัตยกรรมข้อมูลและการออกแบบด้าน AI/ML

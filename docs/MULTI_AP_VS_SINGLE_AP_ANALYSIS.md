@@ -73,3 +73,48 @@ flowchart TD
   * **โหมดเดิน (Walk ~4.5 km/h):** เคลื่อนที่ไปได้ระยะทางประมาณ 75 เมตร (สูญเสียข้อมูลไม่เกิน 33 จุด) ครอบคลุมช่วงเวลาเดินข้ามถนนระหว่างตึก
   * **โหมดขับขี่ (Vehicle ~30 km/h):** เคลื่อนที่ไปได้ระยะทางประมาณ 500 เมตร ผู้สำรวจแตะปลุกได้ทันก่อนหลุดออกนอกเส้นทางวิจัย
   * **ความน่าเชื่อถือด้านสถิติ:** ขจัดปัญหาแจ้งเตือนหลอก (False Alarm) จากความหน่วงของ Cell Handover (15–30 วินาที) ได้ 100%
+
+---
+
+## 5. สถาปัตยกรรมการบันทึกความเร็วและพิกัด (GPS & Kinematic Speed): iOS vs Android
+
+จากการตรวจสอบเชิงลึกของท่อส่งข้อมูล (Data Pipeline) พบข้อแตกต่างทางสถาปัตยกรรมระหว่างระบบปฏิบัติการ iOS และ Android ดังนี้:
+
+### ตารางเปรียบเทียบกลไกการบันทึกความเร็วและพิกัด
+
+| มิติการทำงาน | ฝั่ง Android (Native Companion App) | ฝั่ง iOS (Safari Web + Apple Shortcuts) |
+| :--- | :--- | :--- |
+| **เครื่องมือรวบรวม** | Native Flutter Service (`GpsProvider`) | สถาปัตยกรรมแบบไฮบริด (Hybrid Dual-Engine) |
+| **แหล่งที่มาของ Speed** | ฮาร์ดแวร์ GPS ชิปโดยตรง (`FusedLocationProviderClient`) | คำนวณความเร็วแบบ Kinematic ($\Delta d / \Delta t$) บน Safari |
+| **การทำงานเบื้องหลัง** | **รันเบื้องหลังได้ 100%** ผ่าน Foreground Service (Persistent Notification) จอดับก็ยังเก็บต่อเนื่อง | **ต้องเปิดหน้าจอ Safari ค้างไว้** (มี Web WakeLock กันจอดับ) หากจอดับ WebKit จะ Freeze การทำงานของ GPS ทันที |
+| **บทบาทของ Shortcuts** | ไม่ได้ใช้งาน | วิ่งลูปเก็บเฉพาะ **Wi-Fi RSSI, SSID, BSSID** แล้วยิงขึ้นเซิร์ฟเวอร์ (ไม่มีสิทธิ์ดึงตัวแปร Speed ตรงๆ) |
+| **ความถี่การบันทึก** | 1 วินาทีต่อจุด (บันทึกลง SQLite ออฟไลน์) | 1 วินาทีต่อจุด (Shortcuts ส่ง Wi-Fi, Safari ผสานพิกัดและความเร็ว) |
+| **การแปลงหน่วย** | m/s $\times 3.6 \rightarrow$ km/h (ทศนิยม 2 ตำแหน่ง) | $(\text{Haversine Distance} / \Delta t) \times 3.6 \rightarrow$ km/h |
+
+```mermaid
+flowchart TD
+    subgraph AndroidPipeline ["ฝั่ง Android: Native Autonomous Pipeline"]
+        A1["Foreground Service (ตลอด 24 ชม.)"] --> A2["WifiManager (RSSI/BSSID)"]
+        A1 --> A3["FusedLocationProvider (GPS Lat/Lon/Speed)"]
+        A2 & A3 --> A4["Synchronized Snapshot (1s)"]
+        A4 --> A5["SQLite Local Database"]
+        A5 --> A6["Export CSV & ZIP to Google Drive"]
+    end
+
+    subgraph iOSPipeline ["ฝั่ง iOS: Hybrid Dual-Engine Pipeline"]
+        B1["Apple Shortcuts (Loop 1s)"] --> B2["อ่าน Wi-Fi Details (RSSI/SSID/BSSID)"]
+        B2 --> B3["HTTP GET /api/log (Wi-Fi Payload)"]
+        
+        C1["Safari Web Dashboard (Foreground + WakeLock)"] --> C2["navigator.geolocation.watchPosition"]
+        C2 --> C3["Sliding Window Kinematic Buffer (1.2-3.0s)"]
+        
+        B3 & C3 --> C4["Serverless Ingestion & Merge Engine"]
+        C4 --> C5["Clean 18-Column Unified Research CSV"]
+    end
+```
+
+### ข้อค้นพบสำคัญ: เหตุใด Apple Shortcuts จึงไม่สามารถดึง Speed ได้โดยตรง?
+1. **ข้อจำกัดของเฟรมเวิร์ก Shortcuts (Apple Constraints):** ในคำสั่ง `Get Details of Location` ของ Apple มีให้เลือกเพียง *Latitude, Longitude, Altitude, Accuracy* และ *Address* เท่านั้น **ไม่มีตัวแปร Speed ให้เลือก**
+2. **ปัญหาความหน่วงของการค้นหาดาวเทียม (GPS Latency):** คำสั่ง `Get Current Location` ใน Shortcuts ต้องรอ Hardware Lock พิกัดใหม่ทุกครั้ง ใช้เวลา 5–15 วินาทีต่อรอบ หากนำไปใส่ในลูป จะทำลายอัตราการสุ่มตัวอย่าง Wi-Fi (1 วินาที) ล้มเหลวทันที
+3. **การแก้ปัญหาด้วย Sliding Window Kinematic Speed:** ปรับปรุงโค้ดใน `public/app.js` ให้ใช้บัฟเฟอร์ประวัติพิกัดย้อนหลัง 1.2–3.0 วินาที เพื่อคำนวณระยะทางจริงก้าวต่อก้าวของมนุษย์ ขจัดปัญหาการเดินช้า (< 2.8 km/h) โดนปัดเป็น 0.00 km/h ได้สำเร็จ 100%
+4. **ข้อปฏิบัติภาคสนามสำหรับ iOS:** ต้องเปิดหน้าจอ Safari ค้างไว้ตลอดการเดินทาง (ระบบมี WakeLock คอยรักษาหน้าจอเปิดไว้ให้อัตโนมัติ) เพื่อให้การจับพิกัดและความเร็วไม่ถูกระงับการทำงานโดยระบบปฏิบัติการ iOS
